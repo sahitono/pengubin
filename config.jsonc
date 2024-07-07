@@ -1,0 +1,79 @@
+{
+    "options": {
+        "prefix": "/tiles",
+        "cache": {
+            "ttl": 86400000
+        }
+    },
+    "styles": {
+        "pbb-nop": {
+            "version": 8,
+            "sources": {
+                "pbb": {
+                    "type": "vector",
+                    "tiles": [
+                        "mbtiles://bapenda-smartmap-pbb/{z}/{x}/{y}.pbf"
+                    ]
+                }
+            },
+            "layers": [
+                {
+                    "id": "pbb",
+                    "type": "line",
+                    "source": "pbb",
+                    "source-layer": "bidang_pbb_4326",
+                    "layout": {
+                        "visibility": "visible"
+                    },
+                    "paint": {
+                        "line-color": [
+                            "match",
+                            [
+                                "length",
+                                [
+                                    "coalesce",
+                                    [
+                                        "get",
+                                        "NOP"
+                                    ],
+                                    ""
+                                ]
+                            ],
+                            0,
+                            "#ff0000",
+                            "#00ff00"
+                        ]
+                    }
+                }
+            ]
+        },
+        "pbb-default": {
+            "version": 8,
+            "sources": {
+                "pbb": {
+                    "type": "vector",
+                    "tiles": [
+                        "mbtiles://bapenda-smartmap-pbb/{z}/{x}/{y}.pbf"
+                    ]
+                }
+            },
+            "layers": [
+                {
+                    "id": "pbb",
+                    "type": "line",
+                    "source": "pbb",
+                    "source-layer": "bidang_pbb_4326",
+                    "layout": {
+                        "visibility": "visible"
+                    },
+                    "paint": {
+                        "line-color": "#00ff00"
+                    }
+                }
+            ]
+        }
+    },
+    "providers": {
+        "bapenda-smartmap-pbb": "D:/576f726b/202406001-bapenda-smartmap/data/bidang_pbb_2.mbtiles"
+    }
+}
