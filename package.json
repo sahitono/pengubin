@@ -1,8 +1,16 @@
 {
     "name": "ubin-server",
+    "version": "0.0.1",
     "scripts": {
+        "build": "unbuild",
         "dev": "tsx watch src/cli.ts",
-        "dev:tsn": "ts-node src/index.ts"
+        "dev:tsn": "ts-node src/index.ts",
+        "prepublishOnly": "unbuild",
+        "release": "bumpp && pnpm publish"
+    },
+    "type": "commonjs",
+    "bin": {
+        "ubin-server": "bin/ubin-server.js"
     },
     "packageManager": "pnpm@9.4.0+sha512.f549b8a52c9d2b8536762f99c0722205efc5af913e77835dbccc3b0b0b2ca9e7dc8022b78062c17291c48e88749c70ce88eb5a74f1fa8c4bf5e18bb46c8bd83a",
     "dependencies": {
@@ -36,9 +44,11 @@
         "@types/better-sqlite3": "^7.6.11",
         "@types/mapbox__sphericalmercator": "^1.2.3",
         "@types/node": "^20.11.17",
+        "bumpp": "^9.4.1",
         "eslint": "^9.2.0",
         "eslint-plugin-format": "^0.1.2",
         "tsx": "^4.7.1",
-        "typescript": "^5.5.3"
+        "typescript": "^5.5.3",
+        "unbuild": "^2.0.0"
     }
 }
