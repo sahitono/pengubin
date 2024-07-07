@@ -2,7 +2,8 @@ import { unzipSync } from "node:zlib"
 import { Buffer } from "node:buffer"
 import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import SphericalMercator from "@mapbox/sphericalmercator"
-import { type MapMode, Map as MglMap } from "@maplibre/maplibre-gl-native"
+import type { MapMode } from "@maplibre/maplibre-gl-native"
+import mlgl from "@maplibre/maplibre-gl-native"
 import colorParse from "color-parse"
 import sharp from "sharp"
 import { ProviderRepository } from "../providers/repository"
@@ -15,7 +16,7 @@ const possibleMbtile = ["raster", "vector"]
 export class MapRenderer {
   providerRepo = new ProviderRepository()
   style: StyleSpecification
-  public map: MglMap
+  public map: mlgl.Map
 
   constructor(style: StyleSpecification, providers?: Config["providers"], providerRepo?: ProviderRepository) {
     this.style = style
@@ -37,7 +38,7 @@ export class MapRenderer {
   }
 
   private initMap() {
-    const mgl = new MglMap({
+    const mgl = new mlgl.Map({
       mode: "tile" as MapMode,
       ratio: 1,
       request: async ({
