@@ -1,5 +1,5 @@
 {
-    "name": "ubin-server",
+    "name": "pengubin",
     "version": "0.0.3",
     "scripts": {
         "build": "unbuild",
@@ -10,7 +10,7 @@
     },
     "type": "module",
     "bin": {
-        "ubin-server": "bin/ubin-server.mjs"
+        "pengubin": "bin/pengubin.mjs"
     },
     "files": [
         "dist"
