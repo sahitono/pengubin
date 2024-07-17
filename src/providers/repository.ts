@@ -1,6 +1,9 @@
-import type { Bounds, TileJSON } from "../types"
+import type { TileJSON } from "../types"
+import type { Config } from "../config"
 import { MBTiles } from "./mbtiles"
-import type { Provider } from "./interface"
+import type { PostgisProviderParam } from "./postgis"
+import { Postgis } from "./postgis"
+import type { Providers } from "./index"
 
 export interface ProviderInfo<P> {
   provider: P
@@ -8,24 +11,36 @@ export interface ProviderInfo<P> {
   tileJSON: TileJSON
 }
 
-export class ProviderRepository<P extends MBTiles | Provider = MBTiles | Provider> {
+export class ProviderRepository<P extends Providers = Providers> {
   private repo = new Map<string, ProviderInfo<P>>()
 
-  constructor(providers?: Record<string, string>) {
-    if (providers == null) {
-      return
-    }
+  constructor() {
+  }
 
+  async init(providers: Config["providers"]) {
     for (const name of Object.keys(providers)) {
-      const provider = new MBTiles(providers[name]) as P
-      const metadata = (provider as MBTiles).getMetadata()
+      const type = providers[name].type.toLowerCase()
+      let provider: P
+      if (type === "mbtiles") {
+        provider = new MBTiles(providers[name].url) as P
+      }
+      else if (type === "postgis") {
+        provider = new Postgis(providers[name] as unknown as PostgisProviderParam) as P
+      }
+      else {
+        throw new Error(`unsupported provider = ${type}`)
+      }
+
+      await provider.init()
+
+      const metadata = await provider.getMetadata()
       this.repo.set(name, {
         provider,
-        path: providers[name],
+        path: providers[name].url,
         tileJSON: {
           ...metadata,
           tilejson: "2.0.0",
-          bounds: metadata.bounds.split(",").map(n => Number.parseFloat(n)) as Bounds,
+          bounds: metadata.bounds,
           tiles: [`/${name}/{z}/{x}/{y}`],
         },
       })
@@ -41,15 +56,15 @@ export class ProviderRepository<P extends MBTiles | Provider = MBTiles | Provide
     return found!
   }
 
-  add(name: string, provider: P): void {
-    const metadata = (provider as MBTiles).getMetadata()
+  async add(name: string, provider: P): Promise<void> {
+    const metadata = await provider.getMetadata()
     this.repo.set(name, {
       provider,
       path: "",
       tileJSON: {
         ...metadata,
         tilejson: "2.0.0",
-        bounds: metadata.bounds.split(",").map(n => Number.parseFloat(n)) as Bounds,
+        bounds: metadata.bounds,
         tiles: [`/${name}/{z}/{x}/{y}`],
       },
     })

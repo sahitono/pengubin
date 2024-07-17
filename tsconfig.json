@@ -10,6 +10,7 @@
         ],
         "jsx": "react-jsx",
         "jsxImportSource": "hono/jsx",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "skipDefaultLibCheck": true,
     }
 }

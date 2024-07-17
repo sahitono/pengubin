@@ -1,8 +1,10 @@
-import type { Database as IDatabase, Statement } from "better-sqlite3"
+import type { Database as IDatabase, Statement, Transaction } from "better-sqlite3"
 import Database from "better-sqlite3"
-import { objectify } from "radash"
+import { get, objectify } from "radash"
 import destr from "destr"
-import type { Provider } from "../interface"
+import { Pattern, match } from "ts-pattern"
+import type { Provider, ProviderMetadata } from "../interface"
+import { removeNewLine } from "../../utils/removeNewLine"
 
 export enum MBTileSchemaType {
   FLAT = "flat",
@@ -16,6 +18,13 @@ const GetTileFlat = `
   WHERE t.tile_column = CAST(? AS INTEGER)
     AND t.tile_row = CAST(? AS INTEGER)
     AND t.zoom_level = CAST(? AS INTEGER)
+`
+
+const UpdateTileNormalized = `
+  INSERT OR
+  REPLACE
+  INTO images (tile_id, tile_data)
+  VALUES (?, ?)
 `
 
 interface TileResult {
@@ -36,34 +45,57 @@ export type MBTilesMetadataKey =
   | "agg_tiles_hash"
   | string
 
+type UpdateOrInsertTx = Transaction<(tile: [number, number, number, Uint8Array]) => Database.RunResult>
+
 export class MBTiles implements Provider {
   type = "mbtiles"
-  private db: IDatabase
+  readonly db: IDatabase
   private readTileStmt: Statement<[number, number, number], TileResult>
+  // private updateTileStmt: Statement<[number, number, number, tile: Uint8Array], void>
+  private getTileIDStmt?: Statement<[number, number, number], {
+    tile_id: number
+  }> = undefined
+
   private sourceTable: string
   private readonly schemaType: MBTileSchemaType
+  private updateTx?: UpdateOrInsertTx
 
-  constructor(location: string, turnOnWal: boolean = false) {
+  constructor(location: string, turnOnWal: boolean = false, writeAccess: boolean = false) {
     if (turnOnWal) {
       this.db = new Database(location, {
         readonly: false,
         fileMustExist: true,
+        // verbose(s) {
+        //   console.log(s)
+        // },
       })
       this.db.pragma("journal_mode = WAL")
       this.db.close()
     }
 
     this.db = new Database(location, {
-      readonly: true,
+      readonly: !writeAccess,
       fileMustExist: true,
-      verbose(s) {
-        // console.log(s)
-      },
+      // verbose(s) {
+      //   console.log(s)
+      // },
     })
     this.schemaType = this.readSchemaType()
     this.sourceTable = this.schemaType === MBTileSchemaType.NORMALIZED ? "images" : "tiles"
-    // const sqlQuery = this.type === MBTileSchemaType.FLAT ? GetTileFlat : GetTileNormalized
     this.readTileStmt = this.db.prepare(GetTileFlat.trim().replaceAll("\n", " "))
+
+    if (!writeAccess) {
+      return
+    }
+    if (this.schemaType === MBTileSchemaType.FLAT) {
+      this.updateTx = createUpdateTransactionFlat(this.db)
+    }
+    else {
+      this.updateTx = createUpdateTransactionNormalized(this.db)
+    }
+  }
+
+  async init() {
   }
 
   private readSchemaType(): MBTileSchemaType {
@@ -90,12 +122,99 @@ export class MBTiles implements Provider {
     return tiles[0].data
   }
 
-  getMetadata(): Record<MBTilesMetadataKey, string> {
-    const rows = this.db.prepare<[], { name: MBTilesMetadataKey, value: string }>("SELECT name, value FROM metadata WHERE name != 'agg_tiles_hash'").all()
-    return objectify(rows, ({ name }) => name, ({ value }) => destr(value))
+  async updateTile(x: number, y: number, z: number, tile: Uint8Array): Promise<void> {
+    if (this.updateTx == null) {
+      throw new Error("operation not supported, db readonly")
+    }
+    const flippedY = (2 ** z) - 1 - y
+    const res = this.updateTx.immediate([x, flippedY, z, tile])
+    if (res.changes === 0) {
+      throw new Error(`Failed to update ${x}, ${y}, ${z}`)
+    }
+  }
+
+  async getMetadata(): Promise<ProviderMetadata> {
+    const rows = this.db.prepare<[], {
+      name: MBTilesMetadataKey
+      value: string
+    }>("SELECT name, value FROM metadata WHERE name != 'agg_tiles_hash'").all()
+
+    const parsed = objectify(rows, ({ name }) => name, ({ value }) => destr(value))
+
+    // @ts-expect-error hack now
+    return {
+      ...parsed,
+      metadata: get(parsed, "metadata", ""),
+    }
+  }
+
+  async setMetadata(metadata: ProviderMetadata): Promise<void> {
+    const insertMetadata = this.db.prepare<[string, string]>(`
+      INSERT OR
+      REPLACE
+      INTO metadata (name, value)
+      VALUES (?, ?)
+    `)
+
+    this.db.transaction(() => {
+      for (const [name, value] of Object.entries(metadata)) {
+        insertMetadata.run(name, match(value)
+          .with(Pattern.string, p => p)
+          .otherwise(p => JSON.stringify(p)))
+      }
+    })
   }
 
   async close() {
     this.db.close()
   }
+}
+
+function createUpdateTransactionNormalized(db: Database.Database): UpdateOrInsertTx {
+  const insertStatemnt = db.prepare(removeNewLine(UpdateTileNormalized))
+
+  const readStatement = db.prepare<[number, number, number], {
+    tile_id: number
+  }>(removeNewLine(`
+    SELECT tile_id
+    FROM map
+    WHERE zoom_level = CAST(? AS INTEGER)
+      AND tile_column = CAST(? AS INTEGER)
+      AND tile_row = CAST(? AS INTEGER)
+  `))
+
+  const readMaxID = db.prepare<[], {
+    id: number
+  }>(`SELECT MAX(tile_id) as id
+      FROM images`)
+
+  return db.transaction((tile: [number, number, number, tile: Uint8Array]): Database.RunResult => {
+    const mapTile = readStatement.get(tile[0], tile[1], tile[2])
+    let tileId = mapTile?.tile_id
+    if (tileId == null) {
+      const maxId = readMaxID.all()[0]
+      tileId = maxId.id + 1
+
+      insertStatemnt.run(tileId, tile[3])
+    }
+    return insertStatemnt.run(tileId, tile[3])
+  })
+}
+
+function createUpdateTransactionFlat(db: Database.Database): UpdateOrInsertTx {
+  const statement = db.prepare(
+    `
+      INSERT OR
+      REPLACE
+      INTO tiles (tile_column, tile_row, zoom_level, tile_data)
+      VALUES (CAST(? AS INTEGER),
+              CAST(? AS INTEGER),
+              CAST(? AS INTEGER),
+              ?)
+    `,
+  )
+
+  return db.transaction(([x, y, z, data]) => {
+    statement.run(x, y, z, data)
+  })
 }
