@@ -5,7 +5,10 @@ import defu from "defu"
 
 export interface Config {
   styles: Record<string, StyleSpecification>
-  providers: Record<string, string>
+  providers: Record<string, {
+    type: string
+    url: string
+  } & Record<string, unknown>>
   options: {
     sprites: string
     prefix: string
@@ -18,7 +21,10 @@ export interface Config {
 
 interface ConfigUnparsed {
   styles: Record<string, StyleSpecification | string>
-  providers: Record<string, string>
+  providers: Record<string, {
+    type: string
+    url: string
+  } & Record<string, unknown>>
   options: {
     sprites: string
     prefix: string

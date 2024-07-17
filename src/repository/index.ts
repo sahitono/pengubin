@@ -6,7 +6,8 @@ import type { Config } from "../config"
 import type { TileJSON } from "../types"
 
 export async function createRepo(config: Config) {
-  const data = new ProviderRepository(config.providers)
+  const data = new ProviderRepository()
+  await data.init(config.providers)
 
   const style = new Map<string, {
     parsed: StyleSpecification
@@ -23,7 +24,7 @@ export async function createRepo(config: Config) {
     const {
       pool,
       initialize,
-    } = createPool(8, {
+    } = createPool(14, {
       style: value,
       providerRepo: data,
     })

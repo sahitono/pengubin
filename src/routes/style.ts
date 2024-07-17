@@ -8,7 +8,6 @@ import { get } from "radash"
 import sharp from "sharp"
 import { HTTPException } from "hono/http-exception"
 import { caching } from "cache-manager"
-import consola from "consola"
 import type { Repository } from "../repository"
 import { sqliteImageStore } from "../repository/cache/sqlite-image"
 
@@ -69,7 +68,6 @@ export async function apiStyle({
     const cacheKey = c.req.raw.url
     const cached = await renderedCache.get<Buffer>(cacheKey)
     if (cached != null) {
-      consola.info("reading from cache")
       return c.body(cached, 200, {
         "content-type": `image/${query.format}`,
       })
@@ -96,6 +94,8 @@ export async function apiStyle({
       if (originalLayerId != null) {
         // restore to original filter
         renderer.map.setFilter(originalLayerId, originalLayerFilter)
+        // renderer.map.removeLayer(`${originalLayerId}--filter`)
+        // renderer.map.setLayoutProperty(originalLayerId, "visibility", "visible")
       }
 
       if (tile == null) {
