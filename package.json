@@ -1,6 +1,6 @@
 {
     "name": "pengubin",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "scripts": {
         "build": "unbuild",
         "dev": "tsx watch src/cli.ts",
@@ -21,6 +21,7 @@
     "dependencies": {
         "@hono/node-server": "^1.12.0",
         "@hono/zod-validator": "^0.2.2",
+        "@mapbox/shelf-pack": "^3.2.0",
         "@mapbox/sphericalmercator": "^1.2.0",
         "@maplibre/maplibre-gl-native": "5.4.1-pre.0",
         "@maplibre/maplibre-gl-style-spec": "^20.3.0",
@@ -52,6 +53,7 @@
         "@hono/eslint-config": "^0.0.6",
         "@resolid/cache-manager-sqlite": "^5.1.6",
         "@types/better-sqlite3": "^7.6.11",
+        "@types/mapbox__shelf-pack": "^3.0.6",
         "@types/mapbox__sphericalmercator": "^1.2.3",
         "@types/node": "^20.11.17",
         "@types/pg": "^8.11.6",
