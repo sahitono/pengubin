@@ -1,5 +1,6 @@
 export interface Provider {
   type: string
+  format: string
   init: () => Promise<void>
   getTile: (x: number, y: number, z: number) => Promise<Uint8Array | undefined>
   updateTile: (x: number, y: number, z: number, tile: Uint8Array) => Promise<void>

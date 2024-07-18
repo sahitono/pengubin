@@ -6,6 +6,7 @@ import { HTTPException } from "hono/http-exception"
 import { get } from "radash"
 import type { Repository } from "../repository"
 import { cache } from "../middleware/cache"
+import { DataContentType } from "../constants/DataContentType"
 
 const paramValidator = zValidator("param", z.object({
   name: z.string().min(5),
@@ -36,21 +37,20 @@ export async function apiData({ data }: Repository) {
   app.get("/data/:name/:z/:x/:y", paramValidator, await cache(), async (c, _next) => {
     const param = c.req.valid("param")
 
-    const tile = await data.get(param.name).provider.getTile(param.x, param.y, param.z)
+    const provider = data.get(param.name).provider
+    const tile = await provider.getTile(param.x, param.y, param.z)
     if (tile == null) {
       throw new HTTPException(404, { message: "Tile not found" })
     }
 
+    c.header("content-type", DataContentType[provider.format])
+
     try {
       const uTile = unzipSync(tile)
-      return c.body(uTile, 200, {
-        "content-type": "application/pbf",
-      })
+      return c.body(uTile, 200)
     }
     catch (e) {
-      return c.body(tile, 200, {
-        "content-type": "application/pbf",
-      })
+      return c.body(tile, 200)
     }
   })
 
