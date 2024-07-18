@@ -18,6 +18,7 @@ interface PGTableInfo {
 
 export class Postgis implements Provider {
   type = "postgis"
+  readonly format: string = "pbf"
   readonly url: string
   readonly table: string
   readonly geomField: string

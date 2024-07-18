@@ -49,12 +49,9 @@ type UpdateOrInsertTx = Transaction<(tile: [number, number, number, Uint8Array])
 
 export class MBTiles implements Provider {
   type = "mbtiles"
+  readonly format: string
   readonly db: IDatabase
   private readTileStmt: Statement<[number, number, number], TileResult>
-  // private updateTileStmt: Statement<[number, number, number, tile: Uint8Array], void>
-  private getTileIDStmt?: Statement<[number, number, number], {
-    tile_id: number
-  }> = undefined
 
   private sourceTable: string
   private readonly schemaType: MBTileSchemaType
@@ -83,6 +80,9 @@ export class MBTiles implements Provider {
     this.schemaType = this.readSchemaType()
     this.sourceTable = this.schemaType === MBTileSchemaType.NORMALIZED ? "images" : "tiles"
     this.readTileStmt = this.db.prepare(GetTileFlat.trim().replaceAll("\n", " "))
+    this.format = this.db.prepare<[string], {
+      value: string
+    }>("SELECT value FROM metadata WHERE name = ?").get("format")?.value ?? "pbf"
 
     if (!writeAccess) {
       return

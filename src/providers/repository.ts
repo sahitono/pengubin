@@ -39,6 +39,7 @@ export class ProviderRepository<P extends Providers = Providers> {
         path: providers[name].url,
         tileJSON: {
           ...metadata,
+          version: JSON.stringify(metadata.version),
           tilejson: "2.0.0",
           bounds: metadata.bounds,
           tiles: [`/${name}/{z}/{x}/{y}`],
@@ -63,6 +64,7 @@ export class ProviderRepository<P extends Providers = Providers> {
       path: "",
       tileJSON: {
         ...metadata,
+        version: JSON.stringify(metadata.version),
         tilejson: "2.0.0",
         bounds: metadata.bounds,
         tiles: [`/${name}/{z}/{x}/{y}`],

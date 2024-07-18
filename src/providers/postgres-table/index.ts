@@ -9,6 +9,7 @@ export interface PostgresTableParam {
 
 export class PostgresTable implements Provider {
   type = "postgres-table"
+  format: string = "pbf"
   private readonly url: string
   private readonly table: string
   protected initialized: boolean = false
@@ -53,6 +54,12 @@ export class PostgresTable implements Provider {
   }
 
   async init(): Promise<void> {
+    const format = await this.db`
+      SELECT value
+      FROM metadata
+      WHERE name = 'format'
+    `.execute()
+    this.format = get(format, "[0].value", "pbf")
     this.initialized = true
   }
 
