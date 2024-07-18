@@ -12,6 +12,7 @@ export interface Config {
   options: {
     sprites: string
     prefix: string
+    port: number
     cache: {
       ttl: number
       directory: string
@@ -26,6 +27,7 @@ interface ConfigUnparsed {
     url: string
   } & Record<string, unknown>>
   options: {
+    port: number
     sprites: string
     prefix: string
     cache: {
@@ -59,6 +61,7 @@ export async function loadConfig(location: string): Promise<Config> {
 
   return defu(configParsed, {
     options: {
+      port: 3000,
       prefix: "/",
       cache: {
         ttl: 60 * 1000,

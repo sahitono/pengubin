@@ -55,17 +55,10 @@ export async function createServer(config: Config) {
     repo.data.clear()
   })
 
-  // showRoutes(app, {
-  //   verbose: true,
-  //   colorize: true,
-  // })
-
   return serve({
     fetch: app.fetch,
-    port,
+    port: config.options.port,
   }, (info) => {
     consola.info(`Server starting at http://${info.address}:${info.port}${prefix}`)
   })
 }
-
-// startServer().then(() => {})
