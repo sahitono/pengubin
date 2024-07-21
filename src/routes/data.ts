@@ -1,22 +1,40 @@
 import { unzipSync } from "node:zlib"
-import { Hono } from "hono"
-import { z } from "zod"
-import { zValidator } from "@hono/zod-validator"
-import { HTTPException } from "hono/http-exception"
 import { get } from "radash"
-import type { Repository } from "../repository"
-import { cache } from "../middleware/cache"
+import type { Static } from "@sinclair/typebox"
+import { Type } from "@sinclair/typebox"
+import fastifyCaching from "@fastify/caching"
 import { DataContentType } from "../constants/DataContentType"
-import { XYZParamValidator } from "../middleware/validator"
+import type { XYZParamType } from "../utils/validator"
+import { XYZParam } from "../utils/validator"
+import type { FastifyTypeBoxInstance } from "../createServer"
+import type { ValidFormat } from "../utils/createEmptyResponse"
+import { createEmptyResponse } from "../utils/createEmptyResponse"
 
-export async function apiData({ data }: Repository) {
-  const app = new Hono()
+const Param = Type.Object({
+  name: Type.String(),
+})
 
-  app.get("/data/:name", zValidator("param", z.object({ name: z.string().min(5) })), async (c) => {
-    const param = c.req.valid("param")
-    const tileJSON = data.get(param.name).tileJSON
+type ParamType = Static<typeof Param>
 
-    return c.json({
+export async function apiData(server: FastifyTypeBoxInstance) {
+  const { config } = server.repo
+  server.register(
+    fastifyCaching,
+    {
+      expiresIn: config.options.cache.ttl,
+      serverExpiresIn: config.options.cache.ttl,
+      cacheSegment: "tiles/data",
+    },
+  )
+
+  server.get<{ Params: ParamType }>("/data/:name", {
+    schema: {
+      params: Param,
+    },
+  }, async (req, res) => {
+    const tileJSON = server.repo.data.get(req.params.name).tileJSON
+
+    return res.send({
       ...tileJSON,
       ...(Object.hasOwn(tileJSON, "json")
         ? {
@@ -24,29 +42,32 @@ export async function apiData({ data }: Repository) {
             json: undefined,
           }
         : {}),
-      tiles: [`${c.req.url}/{z}/{x}/{y}`],
+      tiles: [`${req.protocol}:://${req.hostname}${req.url}/{z}/{x}/{y}`],
     })
   })
 
-  app.get("/data/:name/:z/:x/:y", XYZParamValidator, await cache(), async (c, _next) => {
-    const param = c.req.valid("param")
+  server.get<{ Params: XYZParamType }>("/data/:name/:z/:x/:y", {
+    schema: {
+      params: XYZParam,
+    },
+  }, async (req, res) => {
+    const param = req.params
 
-    const provider = data.get(param.name).provider
+    const provider = server.repo.data.get(param.name).provider
     const tile = await provider.getTile(param.x, param.y, param.z)
-    if (tile == null) {
-      throw new HTTPException(404, { message: "Tile not found" })
-    }
 
-    c.header("content-type", DataContentType[provider.format])
+    res.header("content-type", DataContentType[provider.format])
+    if (tile == null) {
+      const data = await createEmptyResponse(provider.format as ValidFormat)
+      return res.send(data)
+    }
 
     try {
       const uTile = unzipSync(tile)
-      return c.body(uTile, 200)
+      return res.send(uTile)
     }
     catch (e) {
-      return c.body(tile, 200)
+      return res.send(tile)
     }
   })
-
-  return app
 }

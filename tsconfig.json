@@ -8,8 +8,6 @@
         "types": [
             "node"
         ],
-        "jsx": "react-jsx",
-        "jsxImportSource": "hono/jsx",
         "esModuleInterop": true,
         "skipDefaultLibCheck": true,
     }

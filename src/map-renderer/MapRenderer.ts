@@ -4,9 +4,8 @@ import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import SphericalMercator from "@mapbox/sphericalmercator"
 import type { MapMode } from "@maplibre/maplibre-gl-native"
 import mlgl from "@maplibre/maplibre-gl-native"
-import colorParse from "color-parse"
-import sharp from "sharp"
 import { ProviderRepository } from "../providers/repository"
+import { createEmptyResponse } from "../utils/createEmptyResponse"
 
 const mercator = new SphericalMercator()
 const localProviders = ["provider", "mbtiles"]
@@ -111,40 +110,6 @@ export class MapRenderer {
 }
 
 // MapRenderer.prototype.equals = ()
-
-const cachedEmptyResponses: Record<string, Uint8Array> = {
-  "": Buffer.alloc(0),
-}
-
-async function createEmptyResponse(format: "pbf" | "jpg" | "jpeg" | "png", color: string = "rgba(255,255,255,0)"): Promise<Uint8Array> {
-  if (!format || format === "pbf") {
-    return cachedEmptyResponses[""]
-  }
-
-  if (format === "jpg") {
-    format = "jpeg"
-  }
-
-  const cacheKey = `${format},${color}`
-  const data = cachedEmptyResponses[cacheKey]
-  if (data) {
-    return data
-  }
-
-  // create an "empty" response image
-  const parsed = colorParse(color)
-  const array = parsed.values
-  const channels = array.length === 4 && format !== "jpeg" ? 4 : 3
-  return await sharp(Buffer.from(array), {
-    raw: {
-      width: 1,
-      height: 1,
-      channels,
-    },
-  })
-    .toFormat(format)
-    .toBuffer()
-}
 
 export interface RenderOptions {
   tileSize?: 256 | 512

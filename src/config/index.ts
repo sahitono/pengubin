@@ -4,6 +4,8 @@ import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import destr from "destr"
 import defu from "defu"
 import consola from "consola"
+import Ajv from "ajv"
+import { ConfigSchema } from "./schema"
 
 export interface Config {
   styles: Record<string, StyleSpecification>
@@ -12,6 +14,7 @@ export interface Config {
     url: string
   } & Record<string, unknown>>
   options: {
+    allowedOrigin: string | string[]
     sprites: string
     prefix: string
     port: number
@@ -30,6 +33,10 @@ interface ConfigUnparsed extends Omit<Config, "styles"> {
   styles: Record<string, StyleSpecification | string>
 }
 
+/**
+ * Parse config and change url style to json
+ * @param location
+ */
 export async function loadConfig(location: string): Promise<Config> {
   const config = destr<ConfigUnparsed>(readFileSync(location, { encoding: "utf-8" }))
   const styles: Config["styles"] = {}
@@ -52,8 +59,20 @@ export async function loadConfig(location: string): Promise<Config> {
     styles,
   }
 
+  const ajv = new Ajv()
+  const validate = ajv.compile(ConfigSchema)
+  const ok = validate(configParsed)
+  if (!ok && validate.errors != null) {
+    consola.error("Config file error")
+    for (const validateElement of validate.errors) {
+      consola.error(validateElement)
+    }
+    process.exit(0)
+  }
+
   const configWithDefault = defu(configParsed, {
     options: {
+      allowedOrigin: "*",
       port: 3000,
       prefix: "/",
       cache: {

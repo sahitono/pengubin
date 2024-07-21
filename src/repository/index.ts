@@ -72,3 +72,4 @@ export async function createRepo(config: Config) {
 }
 
 export type Repository = Awaited<ReturnType<typeof createRepo>>
+export interface RepositoryRouteOption { repo: Repository }
