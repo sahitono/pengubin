@@ -6,6 +6,7 @@
         "dev": "tsx watch src/cli.ts",
         "dev:tsn": "ts-node src/index.ts",
         "dev:tiler": "tsx src/app/tiler/index.ts",
+        "dev:sprite": "tsx src/sprites/index.ts",
         "dev:tile-transfer": "tsx src/app/tile-transfer/index.ts",
         "prepublishOnly": "unbuild",
         "release": "bumpp && pnpm publish"

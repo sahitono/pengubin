@@ -7,13 +7,7 @@ import { get } from "radash"
 import type { Repository } from "../repository"
 import { cache } from "../middleware/cache"
 import { DataContentType } from "../constants/DataContentType"
-
-const paramValidator = zValidator("param", z.object({
-  name: z.string().min(5),
-  x: z.string().pipe(z.coerce.number().min(0).int()),
-  y: z.string().pipe(z.coerce.number().min(0).int()),
-  z: z.string().pipe(z.coerce.number().min(0).int()),
-}))
+import { XYZParamValidator } from "../middleware/validator"
 
 export async function apiData({ data }: Repository) {
   const app = new Hono()
@@ -34,7 +28,7 @@ export async function apiData({ data }: Repository) {
     })
   })
 
-  app.get("/data/:name/:z/:x/:y", paramValidator, await cache(), async (c, _next) => {
+  app.get("/data/:name/:z/:x/:y", XYZParamValidator, await cache(), async (c, _next) => {
     const param = c.req.valid("param")
 
     const provider = data.get(param.name).provider

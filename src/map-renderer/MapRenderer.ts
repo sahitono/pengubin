@@ -7,34 +7,23 @@ import mlgl from "@maplibre/maplibre-gl-native"
 import colorParse from "color-parse"
 import sharp from "sharp"
 import { ProviderRepository } from "../providers/repository"
-import type { Config } from "../config"
-import { MBTiles } from "../providers/mbtiles"
 
 const mercator = new SphericalMercator()
-const possibleMbtile = ["raster", "vector"]
+const localProviders = ["provider", "mbtiles"]
 
 export class MapRenderer {
   providerRepo = new ProviderRepository()
   style: StyleSpecification
   public map: mlgl.Map
 
-  constructor(style: StyleSpecification, providers?: Config["providers"], providerRepo?: ProviderRepository) {
+  constructor(style: StyleSpecification, providerRepo?: ProviderRepository) {
     this.style = style
-    if (providers != null) {
-      this.initRepo(providers)
-    }
 
     if (providerRepo != null) {
       this.providerRepo = providerRepo
     }
 
     this.map = this.initMap()
-  }
-
-  private initRepo(providers: Config["providers"]) {
-    for (const name of Object.keys(providers)) {
-      this.providerRepo.add(name, new MBTiles(providers[name]))
-    }
   }
 
   private initMap() {
@@ -45,9 +34,9 @@ export class MapRenderer {
         url,
         kind,
       }, cb) => {
-        const isLocalMBTile = url.split(":")[0] === "mbtiles"
+        const isLocalProviders = localProviders.includes(url.split(":")[0])
 
-        if (!isLocalMBTile) {
+        if (!isLocalProviders) {
           const data = await (await fetch(url)).arrayBuffer()
 
           return cb(undefined, { data: Buffer.from(data) })
@@ -58,7 +47,6 @@ export class MapRenderer {
         const z = Number.parseInt(parts[3])
         const x = Number.parseInt(parts[4])
         const y = Number.parseInt(parts[5].split(".")[0])
-        // console.log(z, x, y)
 
         const tile = await this.providerRepo.get(sourceId).provider.getTile(x, y, z)
 
@@ -79,19 +67,35 @@ export class MapRenderer {
     return mgl
   }
 
-  async render(x: number, y: number, z: number): Promise<Uint8Array> {
+  async render(x: number, y: number, z: number, {
+    tileSize,
+  }: RenderOptions): Promise<Uint8Array> {
     const center = mercator.ll([
       ((x + 0.5) / (2 ** z)) * (256 * (2 ** z)),
       ((y + 0.5) / (2 ** z)) * (256 * (2 ** z)),
     ], z)
 
+    let zoom = z
+    if (tileSize !== 512) {
+      zoom = z - 1
+    }
+
+    const renderOptions: mlgl.RenderOptions = {
+      ...(z === 0 && tileSize === 256
+        ? {
+            width: tileSize * 2,
+            height: tileSize * 2,
+          }
+        : {
+            width: tileSize,
+            height: tileSize,
+          }),
+      center,
+      zoom,
+    }
+
     return new Promise((resolve, reject) => {
-      this.map.render({
-        height: 512,
-        center,
-        zoom: z,
-        width: 512,
-      }, (err, data) => {
+      this.map.render(renderOptions, (err, data) => {
         if (err != null || data == null) {
           return reject(err)
         }
@@ -111,6 +115,7 @@ export class MapRenderer {
 const cachedEmptyResponses: Record<string, Uint8Array> = {
   "": Buffer.alloc(0),
 }
+
 async function createEmptyResponse(format: "pbf" | "jpg" | "jpeg" | "png", color: string = "rgba(255,255,255,0)"): Promise<Uint8Array> {
   if (!format || format === "pbf") {
     return cachedEmptyResponses[""]
@@ -139,4 +144,9 @@ async function createEmptyResponse(format: "pbf" | "jpg" | "jpeg" | "png", color
   })
     .toFormat(format)
     .toBuffer()
+}
+
+export interface RenderOptions {
+  tileSize?: 256 | 512
+  margin?: number
 }

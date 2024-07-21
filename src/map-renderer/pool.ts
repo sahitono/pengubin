@@ -9,12 +9,11 @@ export type RendererPool = TarnPool<MapRenderer>
 
 export function createPool(poolSize: number, rendererConfig: {
   style: StyleSpecification
-  providers?: Config["providers"]
-  providerRepo?: ProviderRepository
+  providerRepo: ProviderRepository
 }) {
   const pool = new TarnPool<MapRenderer>({
     create: async () => {
-      return new MapRenderer(rendererConfig.style, rendererConfig?.providers, rendererConfig?.providerRepo)
+      return new MapRenderer(rendererConfig.style, rendererConfig.providerRepo)
     },
     min: poolSize,
     max: poolSize + 2,

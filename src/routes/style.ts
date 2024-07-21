@@ -10,17 +10,12 @@ import { HTTPException } from "hono/http-exception"
 import { caching } from "cache-manager"
 import type { Repository } from "../repository"
 import { sqliteImageStore } from "../repository/cache/sqlite-image"
-
-const paramValidator = zValidator("param", z.object({
-  name: z.string().min(5),
-  x: z.string().pipe(z.coerce.number().min(0).int()),
-  y: z.string().pipe(z.coerce.number().min(0).int()),
-  z: z.string().pipe(z.coerce.number().min(0).int()),
-}))
+import { XYZParamValidator } from "../middleware/validator"
 
 const queryValidator = zValidator("query", z.object({
   // format: z.string().enu.optional().default("png"),
   format: z.enum(["png", "jpeg", "webp"]).default("png"),
+  tileSize: z.string().optional().pipe(z.coerce.number().int().default(512)),
   filter: z.string().optional(),
 }))
 
@@ -61,7 +56,7 @@ export async function apiStyle({
     })
   })
 
-  app.get("style/:name/:z/:x/:y", paramValidator, queryValidator, async (c, _next) => {
+  app.get("style/:name/:z/:x/:y", XYZParamValidator, queryValidator, async (c, _next) => {
     const param = c.req.valid("param")
     const query = c.req.valid("query")
 
@@ -83,6 +78,10 @@ export async function apiStyle({
     let originalLayerId: string | undefined
     if (query.filter != null) {
       const parsed = destr<FilterLayer[]>(query.filter)[0]
+      if (parsed.layerId == null) {
+        throw new HTTPException(400, { message: "Missing layer ID in filter" })
+      }
+
       const originalLayer = renderer.style.layers.find(f => f.id === parsed.layerId)
       originalLayerFilter = get(originalLayer, "filter")
       originalLayerId = parsed.layerId
@@ -90,27 +89,29 @@ export async function apiStyle({
     }
 
     try {
-      const tile = await renderer.render(param.x, param.y, param.z)
+      const tile = await renderer.render(param.x, param.y, param.z, { tileSize: query.tileSize as 256 | 512 })
       if (originalLayerId != null) {
-        // restore to original filter
         renderer.map.setFilter(originalLayerId, originalLayerFilter)
-        // renderer.map.removeLayer(`${originalLayerId}--filter`)
-        // renderer.map.setLayoutProperty(originalLayerId, "visibility", "visible")
       }
 
       if (tile == null) {
         return c.text("Tile not found", 404)
       }
 
-      const image = await sharp(tile, {
+      const imageSharp = sharp(tile, {
         raw: {
           premultiplied: true,
-          width: 512,
-          height: 512,
+          width: query.tileSize,
+          height: query.tileSize,
           channels: 4,
         },
       })
-        .toFormat(query.format)
+
+      if (param.z === 0 && query.tileSize === 256) {
+        imageSharp.resize(query.tileSize, query.tileSize)
+      }
+
+      const image = await imageSharp.toFormat(query.format)
         .toBuffer()
 
       await renderedCache.set(cacheKey, image)

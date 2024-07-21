@@ -41,7 +41,7 @@ export function sqliteImageStore(options: SqliteStoreOptions): SqliteImageStore 
   const enableWALMode = options?.enableWALMode ?? true
 
   const sqlite = new Database(options.sqliteFile)
-  consola.log(`Reading databas at ${options.sqliteFile}`)
+  consola.debug(`Reading database at ${options.sqliteFile}`)
 
   if (enableWALMode) {
     sqlite.pragma("journal_mode = WAL")
