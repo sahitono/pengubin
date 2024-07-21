@@ -79,6 +79,7 @@ export class ProviderRepository<P extends Providers = Providers> {
 
   async clear(): Promise<void> {
     for (const r of this.repo.keys()) {
+      await this.repo.get(r)?.provider.close()
       await this.remove(r)
     }
   }

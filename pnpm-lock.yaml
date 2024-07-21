@@ -14,6 +14,9 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.2.2
         version: 0.2.2(hono@4.4.11)(zod@3.23.8)
+      '@mapbox/shelf-pack':
+        specifier: ^3.2.0
+        version: 3.2.0
       '@mapbox/sphericalmercator':
         specifier: ^1.2.0
         version: 1.2.0
@@ -102,6 +105,9 @@ importers:
       '@types/better-sqlite3':
         specifier: ^7.6.11
         version: 7.6.11
+      '@types/mapbox__shelf-pack':
+        specifier: ^3.0.6
+        version: 3.0.6
       '@types/mapbox__sphericalmercator':
         specifier: ^1.2.3
         version: 1.2.3
@@ -807,6 +813,10 @@ packages:
     resolution: {integrity: sha512-rY0o9A5ECsTQRVhv7tL/OyDpGAoUB4tTvLiW1DSzQGq4bvTPhNw1VpSNjDJc5GFZ2XuyOtSWSVN05qOtcD71qQ==}
     engines: {node: '>= 0.6'}
 
+  '@mapbox/shelf-pack@3.2.0':
+    resolution: {integrity: sha512-dyQxe6ukILV6qaEvxoKCIwhblgRjYp1ZGlClo4xvfbmxzFO5LYu7Tnrg2AZrRgN7VsSragsGcNjzUe9kCdKHYQ==}
+    engines: {node: '>=6.0.0'}
+
   '@mapbox/sphericalmercator@1.2.0':
     resolution: {integrity: sha512-ZTOuuwGuMOJN+HEmG/68bSEw15HHaMWmQ5gdTsWdWsjDe56K1kGvLOK6bOSC8gWgIvEO0w6un/2Gvv1q5hJSkQ==}
     hasBin: true
@@ -1061,6 +1071,9 @@ packages:
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+
+  '@types/mapbox__shelf-pack@3.0.6':
+    resolution: {integrity: sha512-ifr+AVwGXQGeh+xsIVIkpvAzN4+Pm7XHBibECWD3RLLQ1l01PtDdxcT/xGWd2MI/Zvzdh9RpSIquu/yjKambZw==}
 
   '@types/mapbox__sphericalmercator@1.2.3':
     resolution: {integrity: sha512-gBXMMNhRTA8HzAzLdBzVYET0dH1p8jDPYZoT9+KnfFRYIRwHnbW+3IyiSlwS7kvr97PMn501QY+Dd3kjxb2dAA==}
@@ -4556,6 +4569,8 @@ snapshots:
 
   '@mapbox/jsonlint-lines-primitives@2.0.2': {}
 
+  '@mapbox/shelf-pack@3.2.0': {}
+
   '@mapbox/sphericalmercator@1.2.0': {}
 
   '@mapbox/unitbezier@0.0.1': {}
@@ -4843,6 +4858,8 @@ snapshots:
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
+
+  '@types/mapbox__shelf-pack@3.0.6': {}
 
   '@types/mapbox__sphericalmercator@1.2.3': {}
 

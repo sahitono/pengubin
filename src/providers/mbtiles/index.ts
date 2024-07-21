@@ -141,11 +141,10 @@ export class MBTiles implements Provider {
 
     const parsed = objectify(rows, ({ name }) => name, ({ value }) => destr(value))
 
-    // @ts-expect-error hack now
     return {
       ...parsed,
-      metadata: get(parsed, "metadata", ""),
-    }
+      bounds: get<string>(parsed, "bounds", "").split(",").map(b => Number.parseFloat(b)) as ProviderMetadata["bounds"],
+    } as unknown as ProviderMetadata
   }
 
   async setMetadata(metadata: ProviderMetadata): Promise<void> {
