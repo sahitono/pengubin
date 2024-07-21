@@ -1,7 +1,5 @@
 import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import { Pool as TarnPool } from "tarn"
-import consola from "consola"
-import type { Config } from "../config"
 import type { ProviderRepository } from "../providers/repository"
 import { MapRenderer } from "./MapRenderer"
 
@@ -21,12 +19,14 @@ export function createPool(poolSize: number, rendererConfig: {
       res.destroy()
     },
   })
-  const interval = setInterval(() => {
-    consola.debug(`POOL = ${pool.numUsed()} / ${poolSize}`)
-  }, 5000)
-  pool.on("destroyRequest", () => {
-    clearInterval(interval)
-  })
+  // const interval = setInterval(() => {
+  //   consola.debug(`POOL = ${pool.numUsed()} / ${poolSize}`)
+  // }, 5000)
+  // pool.on("destroyRequest", async () => {
+  //   const map  = await pool.acquire().promise
+  //   map.destroy()
+  //   // clearInterval(interval)
+  // })
 
   return {
     pool,

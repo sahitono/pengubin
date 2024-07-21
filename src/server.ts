@@ -1,77 +1,65 @@
-import type { HttpBindings } from "@hono/node-server"
-import { serve } from "@hono/node-server"
-import { Hono } from "hono"
-import { logger } from "hono/logger"
-import { cors } from "hono/cors"
-import consola, { createConsola } from "consola"
-import { serveStatic } from "@hono/node-server/serve-static"
-import { rateLimiter } from "hono-rate-limiter"
-import { HTTPException } from "hono/http-exception"
+import consola from "consola"
+import fastifyRateLimit from "@fastify/rate-limit"
+import fastifyHelmet from "@fastify/helmet"
+import fastifyCors from "@fastify/cors"
+import fastifyGracefulShutdown from "fastify-graceful-shutdown"
 import type { Config } from "./config"
 import { createRepo } from "./repository"
 import { apiCatalog } from "./routes/catalog"
+import { repositoryPlugin } from "./plugins/repository-plugin"
+import { createServer } from "./createServer"
 import { apiData } from "./routes/data"
+import { boomPlugin } from "./plugins/boom-plugin"
 import { apiStyle } from "./routes/style"
-import { apiPlayground } from "./routes/playground"
 
-export async function createServer(config: Config) {
+export async function startServer(config: Config) {
   const repo = await createRepo(config)
 
-  const app = new Hono<{ Bindings: HttpBindings }>()
-  app.use(logger(createConsola().log))
-  app.use(cors({
-    origin: "*",
-  }))
-  app.onError((err, c) => {
-    if (err instanceof HTTPException) {
-      return err.getResponse()
-    }
+  const server = createServer()
 
-    // if (err.message === "Response body object should not be disturbed or locked ") {
-    //   // c.req.raw.
-    // }
-
-    consola.error(err)
-    return c.text("Something went wrong", 500)
+  server.register(fastifyCors, {
+    origin: config.options.allowedOrigin,
   })
-  app.use(rateLimiter({
-    windowMs: config.options.rateLimit.windowMs,
-    limit: config.options.rateLimit.limit, // Limit each IP to 100 requests per `window` (here, per 15 minutes).
-    standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-    keyGenerator: (c) => {
-      // console.log("logging rate limiter")
-      return c.req.raw.url
-    },
-  }))
+  server.register(fastifyGracefulShutdown).after((err) => {
+    server.gracefulShutdown((signal) => {
+      server.log.info("Gracefully closing repository resources")
+      repo.style.forEach(({ pool }) => {
+        pool.destroy()
+      })
+      repo.data.clear()
+      server.log.info("Gracefully closed repository resources")
+    })
+  })
+  server.register(fastifyHelmet)
+  server.register(boomPlugin)
+  server.register(fastifyRateLimit, {
+    max: config.options.rateLimit.limit,
+    timeWindow: config.options.rateLimit.windowMs,
+    enableDraftSpec: true,
+  })
+  server.register(repositoryPlugin, {
+    repo,
+  })
 
   const prefix = config.options?.prefix ?? "/"
-  app.get(prefix, (c) => {
-    return c.text("Hi")
+  server.get(`${prefix}/`, (req, res) => {
+    return "Hello"
   })
+  server.get(`${prefix}/health`, (req, res) => {
+    return res.send("OK")
+  })
+  server.register(apiCatalog, { prefix })
+  server.register(apiData, { prefix })
+  server.register(apiStyle, { prefix })
 
-  app.route(prefix, app.get("/public/*", serveStatic({})))
-  app.route(prefix, app.get("/health", (c) => {
-    return c.text("OK")
-  }))
-
-  app.route(prefix, await apiCatalog(repo))
-  app.route(prefix, await apiData(repo))
-  app.route(prefix, await apiStyle(repo))
-  app.route(prefix, await apiPlayground(repo))
-
-  // eslint-disable-next-line node/prefer-global/process
-  process.on("beforeExit", () => {
-    consola.info("Gracefully exiting...")
-    repo.style.forEach(({ pool }) => {
-      pool.destroy()
+  try {
+    await server.listen({
+      port: config.options.port,
     })
-    repo.data.clear()
-  })
-
-  return serve({
-    fetch: app.fetch,
-    port: config.options.port,
-  }, (info) => {
-    consola.info(`Server starting at http://${info.address}:${info.port}${prefix}`)
-  })
+    server.log.info(`Server listening at = http://127.0.0.1:${config.options.port}${prefix}`)
+  }
+  catch (err) {
+    consola.error("Something went wrong while running server")
+    server.log.error(err)
+  }
 }

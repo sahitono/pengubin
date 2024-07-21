@@ -12,7 +12,7 @@
                 "pbb": {
                     "type": "vector",
                     "tiles": [
-                        "mbtiles://bapenda-smartmap-pbb/{z}/{x}/{y}.pbf"
+                        "provider://bapenda-smartmap-pbb/{z}/{x}/{y}.pbf"
                     ]
                 }
             },
@@ -21,7 +21,7 @@
                     "id": "pbb",
                     "type": "line",
                     "source": "pbb",
-                    "source-layer": "bidang_pbb_4326",
+                    "source-layer": "function_zxy_query",
                     "layout": {
                         "visibility": "visible"
                     },
@@ -31,12 +31,11 @@
                             [
                                 "length",
                                 [
-                                    "coalesce",
+                                    "to-string",
                                     [
                                         "get",
                                         "NOP"
-                                    ],
-                                    ""
+                                    ]
                                 ]
                             ],
                             0,
@@ -53,7 +52,7 @@
                 "pbb": {
                     "type": "vector",
                     "tiles": [
-                        "mbtiles://bapenda-smartmap-pbb/{z}/{x}/{y}.pbf"
+                        "provider://bapenda-smartmap-pbb/{z}/{x}/{y}.pbf"
                     ]
                 }
             },
@@ -62,7 +61,7 @@
                     "id": "pbb",
                     "type": "line",
                     "source": "pbb",
-                    "source-layer": "bidang_pbb_4326",
+                    "source-layer": "function_zxy_query",
                     "layout": {
                         "visibility": "visible"
                     },
@@ -74,6 +73,30 @@
         }
     },
     "providers": {
-        "bapenda-smartmap-pbb": "D:/576f726b/202406001-bapenda-smartmap/data/bidang_pbb_2.mbtiles"
+        "bapenda-smartmap-pbb": {
+            "type": "mbtiles",
+            "url": "D:/.temp/test-pbf/bidang_pbb_4.mbtiles"
+        },
+        "bapenda-smartmap-pbb_centroid": {
+            "type": "mbtiles",
+            "url": "D:/576f726b/202406001-bapenda-smartmap/data/centroid_bidang_pbb.mbtiles"
+        },
+        "bapenda-smartmap-pbb-postgis": {
+            "type": "postgis",
+            "url": "postgres://postgres:9918@localhost:5437/badung",
+            "table": "bidang_pbb_4326",
+            "geomField": "geom",
+            "idField": "fid",
+            "srid": 4326,
+            "schema": "public"
+        },
+        "bapenda-smartmap-batas_wilayah": {
+            "type": "mbtiles",
+            "url": "D:/576f726b/202406001-bapenda-smartmap/data/batas_wilayah.mbtiles"
+        },
+        "bapenda-smartmap-citata": {
+            "type": "mbtiles",
+            "url": "D:/576f726b/202406001-bapenda-smartmap/data/CITRA_2014/dki_25cm_png_19.mbtiles"
+        }
     }
 }
