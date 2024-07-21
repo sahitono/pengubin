@@ -1,33 +1,85 @@
 import type { Buffer } from "node:buffer"
 import path from "node:path"
-import { Hono } from "hono"
-import { z } from "zod"
-import { zValidator } from "@hono/zod-validator"
 import destr from "destr"
 import { get } from "radash"
 import sharp from "sharp"
-import { HTTPException } from "hono/http-exception"
 import { caching } from "cache-manager"
-import type { Repository } from "../repository"
+import { Type } from "@sinclair/typebox"
+import { badGateway, notFound } from "@hapi/boom"
 import { sqliteImageStore } from "../repository/cache/sqlite-image"
-import { XYZParamValidator } from "../middleware/validator"
+import type { FastifyTypeBoxInstance } from "../createServer"
+import { XYZParam } from "../utils/validator"
 
-const queryValidator = zValidator("query", z.object({
-  // format: z.string().enu.optional().default("png"),
-  format: z.enum(["png", "jpeg", "webp"]).default("png"),
-  tileSize: z.string().optional().pipe(z.coerce.number().int().default(512)),
-  filter: z.string().optional(),
-}))
+const Query = Type.Object({
+  // format: Type.Union([
+  //   Type.Literal("png"),
+  //   Type.Literal("jpeg"),
+  //   Type.Literal("webp"),
+  // ], {
+  //   default: Type.Literal("png"),
+  // }),
+  format: Type.Unsafe<"png" | "jpeg" | "webp">({
+    default: "png",
+  }),
+  tileSize: Type.Number({
+    default: 512,
+  }),
+  filter: Type.Optional(Type.String()),
+})
 
 interface FilterLayer {
   layerId: string
   filter: []
 }
 
-export async function apiStyle({
-  config,
-  style,
-}: Repository) {
+const Param = Type.Object({
+  name: Type.String(),
+})
+
+const XYZParamWithFormat = Type.Object({
+  name: Type.String(),
+  x: Type.Number({
+    minimum: 0,
+  }),
+  y: Type.Number({
+    minimum: 0,
+  }),
+  z: Type.Number({
+    minimum: 0,
+    maximum: 23,
+  }),
+  format: Type.Union([
+    Type.Literal("png"),
+    Type.Literal("jpeg"),
+    Type.Literal("webp"),
+  ], {
+    default: Type.Literal("png"),
+  }),
+})
+
+declare module "fastify" {
+  interface FastifyRequest {
+    /**
+     * Release dangling style renderer on client abort connection
+     */
+    releaseDanglingRendererPool: () => void
+  }
+}
+
+export async function apiStyle(server: FastifyTypeBoxInstance) {
+  const {
+    config,
+    style,
+  } = server.repo
+  server.decorateRequest("releaseDanglingRendererPool", () => null)
+  server.addHook("onRequest", async (req) => {
+    req.raw.on("close", () => {
+      if (req.raw.destroyed) {
+        req.releaseDanglingRendererPool()
+      }
+    })
+  })
+
   const renderedCache = await caching(sqliteImageStore({
     cacheTableName: "caches",
     enableWALMode: true,
@@ -35,16 +87,18 @@ export async function apiStyle({
     ttl: config.options.cache.ttl,
   }))
 
-  const app = new Hono()
-
-  app.get("/style/:name", zValidator("param", z.object({ name: z.string().min(5) })), async (c) => {
-    const param = c.req.valid("param")
+  server.get("/style/:name", {
+    schema: {
+      params: Param,
+    },
+  }, async (req, res) => {
+    const param = req.params
     const tileJSON = style.get(param.name)?.tileJSON
     if (tileJSON == null) {
-      throw new HTTPException(404)
+      throw notFound("Style not found")
     }
 
-    return c.json({
+    return res.send({
       ...tileJSON,
       ...(Object.hasOwn(tileJSON, "json")
         ? {
@@ -52,25 +106,29 @@ export async function apiStyle({
             json: undefined,
           }
         : {}),
-      tiles: [`${c.req.url}/{z}/{x}/{y}`],
+      tiles: [`${req.hostname}${req.url}/{z}/{x}/{y}`],
     })
   })
 
-  app.get("style/:name/:z/:x/:y", XYZParamValidator, queryValidator, async (c, _next) => {
-    const param = c.req.valid("param")
-    const query = c.req.valid("query")
+  server.get("/style/:name/:z/:x/:y", {
+    schema: {
+      params: XYZParam,
+      querystring: Query,
+    },
+  }, async (req, reply) => {
+    const param = req.params
+    const query = req.query
 
-    const cacheKey = c.req.raw.url
+    const cacheKey = req.url
     const cached = await renderedCache.get<Buffer>(cacheKey)
     if (cached != null) {
-      return c.body(cached, 200, {
-        "content-type": `image/${query.format}`,
-      })
+      reply.header("content-type", `image/${query.format}`)
+      return reply.send(cached).status(200)
     }
 
     const pool = style.get(param.name)?.pool
     if (pool == null) {
-      throw new HTTPException(404, { message: "Style not found" })
+      throw notFound("Style not found")
     }
 
     const renderer = await pool.acquire().promise
@@ -79,7 +137,8 @@ export async function apiStyle({
     if (query.filter != null) {
       const parsed = destr<FilterLayer[]>(query.filter)[0]
       if (parsed.layerId == null) {
-        throw new HTTPException(400, { message: "Missing layer ID in filter" })
+        pool.release(renderer)
+        throw notFound("Missing layer ID in filter")
       }
 
       const originalLayer = renderer.style.layers.find(f => f.id === parsed.layerId)
@@ -87,15 +146,23 @@ export async function apiStyle({
       originalLayerId = parsed.layerId
       renderer.map.setFilter(parsed.layerId, parsed.filter)
     }
-
-    try {
-      const tile = await renderer.render(param.x, param.y, param.z, { tileSize: query.tileSize as 256 | 512 })
+    let rendererReleased = false
+    const releaseRendererPool = () => {
       if (originalLayerId != null) {
         renderer.map.setFilter(originalLayerId, originalLayerFilter)
       }
+      pool.release(renderer)
+      rendererReleased = true
+      req.releaseDanglingRendererPool = () => null
+    }
+    req.releaseDanglingRendererPool = releaseRendererPool
+
+    try {
+      const tile = await renderer.render(param.x, param.y, param.z, { tileSize: query.tileSize as 256 | 512 })
+      releaseRendererPool()
 
       if (tile == null) {
-        return c.text("Tile not found", 404)
+        return reply.send("Tile not found").status(404)
       }
 
       const imageSharp = sharp(tile, {
@@ -111,22 +178,22 @@ export async function apiStyle({
         imageSharp.resize(query.tileSize, query.tileSize)
       }
 
-      const image = await imageSharp.toFormat(query.format)
+      const image = await imageSharp.toFormat(query.format!)
         .toBuffer()
 
       await renderedCache.set(cacheKey, image)
 
-      return c.body(image, 200, {
-        "content-type": `image/${query.format}`,
-      })
+      reply.header("content-type", `image/${query.format}`)
+      return reply.send(image)
     }
     catch (e) {
-      throw new HTTPException(500, { message: "Failed render" })
+      server.log.debug(e)
+      throw badGateway("Failed render")
     }
     finally {
-      pool.release(renderer)
+      if (!rendererReleased) {
+        releaseRendererPool()
+      }
     }
   })
-
-  return app
 }

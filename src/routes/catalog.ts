@@ -1,19 +1,17 @@
-import { Hono } from "hono"
 import { get } from "radash"
-import type { Repository } from "../repository"
+import type { FastifyInstance } from "fastify"
 import type { MBTiles } from "../providers/mbtiles"
 import type { ProviderInfo } from "../providers/repository"
 import { DataContentType } from "../constants/DataContentType"
 
-export async function apiCatalog({ data, style }: Repository) {
-  const app = new Hono()
-
-  app.get("/catalog", async (c) => {
+export async function apiCatalog(server: FastifyInstance) {
+  server.get("/catalog", async (req, res) => {
     const dataInfo: Record<string, Record<string, unknown>> = {}
 
-    const hostUrl = c.req.url.replaceAll("/catalog", "")
-    for await (const dataKey of data.keys()) {
-      const content = data.get(dataKey) as ProviderInfo<MBTiles>
+    const hostUrl = `${req.hostname}${req.url.replaceAll("/catalog", "")}`
+
+    for await (const dataKey of server.repo.data.keys()) {
+      const content = server.repo.data.get(dataKey) as ProviderInfo<MBTiles>
 
       dataInfo[dataKey] = {
         path: `${hostUrl}/data/${dataKey}`,
@@ -24,15 +22,13 @@ export async function apiCatalog({ data, style }: Repository) {
     }
 
     const styleInfo: Record<string, string> = {}
-    for await (const styleKey of style.keys()) {
+    for await (const styleKey of server.repo.style.keys()) {
       styleInfo[styleKey] = `${hostUrl}/style/${styleKey}`
     }
 
-    return c.json({
+    return res.send({
       data: dataInfo,
       style: styleInfo,
     })
   })
-
-  return app
 }
