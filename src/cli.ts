@@ -2,7 +2,7 @@ import { argv, exit } from "node:process"
 import { Command } from "commander"
 import pkg from "../package.json"
 import { initConfig, loadConfig } from "./config"
-import { createServer } from "./server"
+import { startServer } from "./server"
 
 const program = new Command()
 
@@ -13,9 +13,8 @@ program
   .command("run <config>")
   .description("run pengubin server with <config>")
   .action((config?: string) => {
-    console.log("config file at ", config)
     loadConfig(config ?? "config.json")
-      .then(config => createServer(config))
+      .then(config => startServer(config))
   })
   .addCommand(new Command("init")
     .description("init configuration file")
@@ -25,9 +24,3 @@ program
     }))
 
 program.parse(argv)
-// const params = program.opts<{
-//   config: string
-// }>()
-//
-// loadConfig(params.config)
-//   .then(config => createServer(config))
