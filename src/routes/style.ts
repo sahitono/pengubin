@@ -106,7 +106,7 @@ export async function apiStyle(server: FastifyTypeBoxInstance) {
             json: undefined,
           }
         : {}),
-      tiles: [`${req.hostname}${req.url}/{z}/{x}/{y}`],
+      tiles: [`${req.protocol}://${req.hostname}${req.url}/{z}/{x}/{y}`],
     })
   })
 

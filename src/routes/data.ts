@@ -42,7 +42,7 @@ export async function apiData(server: FastifyTypeBoxInstance) {
             json: undefined,
           }
         : {}),
-      tiles: [`${req.protocol}:://${req.hostname}${req.url}/{z}/{x}/{y}`],
+      tiles: [`${req.protocol}://${req.hostname}${req.url}/{z}/{x}/{y}`],
     })
   })
 

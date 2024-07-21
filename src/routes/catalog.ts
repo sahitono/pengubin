@@ -8,7 +8,7 @@ export async function apiCatalog(server: FastifyInstance) {
   server.get("/catalog", async (req, res) => {
     const dataInfo: Record<string, Record<string, unknown>> = {}
 
-    const hostUrl = `${req.hostname}${req.url.replaceAll("/catalog", "")}`
+    const hostUrl = `${req.protocol}://${req.hostname}${req.url.replaceAll("/catalog", "")}`
 
     for await (const dataKey of server.repo.data.keys()) {
       const content = server.repo.data.get(dataKey) as ProviderInfo<MBTiles>
