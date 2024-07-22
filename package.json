@@ -1,6 +1,6 @@
 {
     "name": "pengubin",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "scripts": {
         "build": "unbuild",
         "dev": "tsx watch src/cli.ts",
