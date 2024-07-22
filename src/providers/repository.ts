@@ -43,6 +43,11 @@ export class ProviderRepository<P extends Providers = Providers> {
           tilejson: "2.0.0",
           bounds: metadata.bounds,
           tiles: [`/${name}/{z}/{x}/{y}`],
+          /**
+           * override to use XYZ scheme by default
+           * because TMS scheme will be handled by db query
+           */
+          scheme: "xyz",
         },
       })
     }
