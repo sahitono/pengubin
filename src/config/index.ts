@@ -5,6 +5,7 @@ import destr from "destr"
 import defu from "defu"
 import consola from "consola"
 import Ajv from "ajv"
+import { Pattern, match } from "ts-pattern"
 import { ConfigSchema } from "./schema"
 
 export interface Config {
@@ -40,19 +41,29 @@ interface ConfigUnparsed extends Omit<Config, "styles"> {
 export async function loadConfig(location: string): Promise<Config> {
   const config = destr<ConfigUnparsed>(readFileSync(location, { encoding: "utf-8" }))
   const styles: Config["styles"] = {}
+  console.info("parsing style")
   for (const [key, value] of Object.entries(config.styles)) {
-    if (!(value instanceof String)) {
-      styles[key] = value as StyleSpecification
-      continue
-    }
+    await match(value)
+      .with(Pattern.string, async (v) => {
+        const isOnline = v.includes("http")
+        if (isOnline) {
+          styles[key] = await (await fetch(value as string)).json()
+          return
+        }
 
-    const isOnline = value.includes("http")
-    if (isOnline) {
-      styles[key] = await (await fetch(value as string)).json()
-      continue
-    }
-
-    styles[key] = destr(readFileSync(value as string, { encoding: "utf-8" }))
+        styles[key] = destr(readFileSync(value as string, { encoding: "utf-8" }))
+      }).otherwise(async (v) => {
+        styles[key] = v
+      })
+    // if (!(value instanceof String)) {
+    //   styles[key] = value as StyleSpecification
+    //   continue
+    // }
+    //
+    // styles[key] = destr(readFileSync(value as string, { encoding: "utf-8" }))
+    // console.info("parsed")
+    // console.log(key)
+    // console.log(styles[key])
   }
   const configParsed: Config = {
     ...config,
