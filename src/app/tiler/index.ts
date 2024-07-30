@@ -18,7 +18,7 @@ interface RenderParam {
   maxzoom: number
 }
 
-async function startRender(param: RenderParam) {
+export async function startRender(param: RenderParam) {
   consola.info("Start tiling")
 
   const db = await createMBTiles(param.mbtile)
@@ -76,28 +76,3 @@ async function startRender(param: RenderParam) {
   })
   await db.close()
 }
-
-startRender({
-  maxzoom: 18,
-  minzoom: 0,
-  bbox: [106.479, -6.37258, 106.973, -5.76946],
-  concurrency: 14,
-  postgis: {
-    url: "postgres://postgres:9918@localhost:5437/badung",
-    table: "bidang_pbb",
-    geomField: "geom",
-    idField: "id",
-    srid: 4326,
-    schema: "public",
-  },
-  mbtile: "D:/Documents/00-self-project/ubin-server/bidang_pbb.mbtiles",
-})
-  .then(() => {
-    console.log("\n")
-    consola.success("Finished!")
-    process.exit(0)
-  })
-  .catch((e) => {
-    consola.error("Something went wrong!")
-    consola.error(e)
-  })

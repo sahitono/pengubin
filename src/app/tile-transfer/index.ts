@@ -6,7 +6,7 @@ interface TransferParam {
   mbtile: string
 }
 
-async function main(param: TransferParam) {
+export async function startTransfer(param: TransferParam) {
   const dbTarget = await PostgresTable.create(param.postgres)
   await dbTarget.init()
 
@@ -27,16 +27,3 @@ async function main(param: TransferParam) {
   await dbSource.close()
   await dbTarget.close()
 }
-
-main({
-  mbtile: "D:/Documents/00-self-project/ubin-server/test-cache.mbtiles",
-  postgres: {
-    url: "postgres://postgres:9918@localhost:5437/badung",
-    table: "bidang_test",
-  },
-})
-  .then(() => {
-    console.log("Woohoo")
-  }).catch((e) => {
-    console.error(e)
-  })
