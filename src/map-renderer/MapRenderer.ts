@@ -119,8 +119,6 @@ export class MapRenderer {
   }
 }
 
-// MapRenderer.prototype.equals = ()
-
 export interface RenderOptions {
   tileSize?: 256 | 512
   margin?: number

@@ -9,13 +9,6 @@ import { ImageCache } from "../repository/cache/image/ImageCache"
 import { SqliteImageStore } from "../repository/cache/image/SqliteImageStore"
 
 const Query = Type.Object({
-  // format: Type.Union([
-  //   Type.Literal("png"),
-  //   Type.Literal("jpeg"),
-  //   Type.Literal("webp"),
-  // ], {
-  //   default: Type.Literal("png"),
-  // }),
   format: Type.Unsafe<"png" | "jpeg" | "webp">({
     default: "png",
   }),
@@ -69,13 +62,6 @@ export async function apiStyle(server: FastifyTypeBoxInstance) {
     })
   })
 
-  // const renderedCache = await caching(sqliteImageStore({
-  //   cacheTableName: "caches",
-  //   enableWALMode: true,
-  //   sqliteFile: path.resolve(config.options.cache.directory, "cached-image.sqlite3"),
-  //   ttl: config.options.cache.ttl,
-  // }))
-
   const renderedCache = new ImageCache({
     ttl: config.options.cache.ttl,
     store: new SqliteImageStore({
@@ -122,7 +108,6 @@ export async function apiStyle(server: FastifyTypeBoxInstance) {
     const param = req.params
     const query = req.query
 
-    // const cacheKey = req.url
     const cacheOtherKey = `${JSON.stringify(query)}-${param.tileSize}`
 
     const cached = await renderedCache.get(param.name, param.x, param.y, param.z, cacheOtherKey)

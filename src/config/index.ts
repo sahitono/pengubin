@@ -54,15 +54,6 @@ export async function loadConfig(location: string): Promise<Config> {
       }).otherwise(async (v) => {
         styles[key] = v
       })
-    // if (!(value instanceof String)) {
-    //   styles[key] = value as StyleSpecification
-    //   continue
-    // }
-    //
-    // styles[key] = destr(readFileSync(value as string, { encoding: "utf-8" }))
-    // console.info("parsed")
-    // console.log(key)
-    // console.log(styles[key])
   }
   const configParsed: Config = {
     ...config,

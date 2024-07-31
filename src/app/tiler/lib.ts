@@ -2,12 +2,6 @@ const MAX_ZOOM = 20 // Example value, replace with the actual value
 const EARTH_CIRCUMFERENCE = 40075017 // Earth's circumference in meters, adjust if needed
 const EARTH_RADIUS = EARTH_CIRCUMFERENCE / 2 / Math.PI // Earth's circumference in meters, adjust if needed
 
-function assert(condition: boolean, message: string) {
-  if (!condition) {
-    throw new Error(message)
-  }
-}
-
 function getTileBbox(x: number, y: number, tile_length: number): [number, number, number, number] {
   // Implement the logic for tile_bbox
   // This function should return an array [min_x, min_y, max_x, max_y] based on input x, y, and tile_length

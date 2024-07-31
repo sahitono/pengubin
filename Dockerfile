@@ -41,18 +41,3 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.pnpm-store \
 FROM install-prod-stage AS prod-stage
 COPY docker-entrypoint.sh .
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-
-#FROM base AS build-stage
-#
-#COPY . .
-#ENV NODE_OPTIONS="--max-old-space-size=6384"
-#RUN pnpm build
-#CMD pnpm node dist/cli.mjs run config.json
-#ENTRYPOINT ["docker-entrypoint.sh"]
-
-
-#FROM base AS production-stage
-#
-#WORKDIR /app
-#COPY --from=build-stage /app/dist .
-#CMD node dist/cli.mjs
