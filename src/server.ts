@@ -59,8 +59,9 @@ export async function startServer(config: Config) {
   try {
     await server.listen({
       port: config.options.port,
+      host: "0.0.0.0",
     })
-    server.log.info(`Server listening at http://127.0.0.1:${config.options.port}${prefix}`)
+    server.log.info(`Server listening at http://0.0.0.0:${config.options.port}${prefix}`)
   }
   catch (err) {
     consola.error("Something went wrong while running server")

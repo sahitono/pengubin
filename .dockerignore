@@ -1,0 +1,12 @@
+*
+!src
+!public
+!test
+!.npmrc
+!package.json
+!pnpm-lock.yaml
+!docker-entrypoint.sh
+!bin
+!config.json
+!tsconfig.json
+!build.config.ts
