@@ -280,6 +280,7 @@ config.json
 config.jsonc
 *.http
 *.json
+!package.json
 *.mbtiles-shm
 *.mbtiles-wal
 docker-volume
