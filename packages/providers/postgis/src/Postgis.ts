@@ -4,11 +4,12 @@ import { createPool, sql } from "slonik"
 import { Pattern, match } from "ts-pattern"
 import type { Feature } from "geojson"
 import destr from "destr"
-import type { XYZMetadataVectorLayerFieldType, XYZProvider, XYZProviderMetadata } from "../interface"
+import type { XYZMetadataVectorLayerFieldType, XYZProvider, XYZProviderMetadata } from "@pengubin/core"
 import { ZPGTableInfo } from "./PGTableInfo"
 
 export interface PostgisProviderParam {
-  url: string
+  pool?: DatabasePool
+  url?: string
   table: string
   geomField?: string
   idField?: string
@@ -26,10 +27,23 @@ export class Postgis implements XYZProvider {
   readonly srid: number
   protected _pool?: DatabasePool
   readonly schema: string
-  columns: { name: string, type: XYZMetadataVectorLayerFieldType }[] = []
+  columns: {
+    name: string
+    type: XYZMetadataVectorLayerFieldType
+  }[] = []
 
   constructor(param: PostgisProviderParam) {
-    this.url = param.url
+    if (param.pool != null) {
+      this._pool = param.pool
+      this.url = param.pool.configuration.connectionUri
+    }
+    else {
+      if (param.url == null) {
+        throw new Error("url missing")
+      }
+      this.url = param.url
+    }
+
     this.table = param.table
     this.geomField = param.geomField ?? "geom"
     this.idField = param.idField ?? "id"
@@ -45,7 +59,9 @@ export class Postgis implements XYZProvider {
   }
 
   async init() {
-    this._pool = await createPool(this.url)
+    if (this._pool == null) {
+      this._pool = await createPool(this.url)
+    }
 
     const res = await this.pool.query(sql.type(ZPGTableInfo)`
       SELECT *
@@ -53,11 +69,6 @@ export class Postgis implements XYZProvider {
       WHERE table_schema = 'public'
         AND table_name = ${this.table}
     `)
-    // const rows = await this.db<PGTableInfo[]>`SELECT *
-    //                                           FROM information_schema.columns
-    //                                           WHERE table_schema = 'public'
-    //                                             AND table_name = ${this.table};
-    // `.execute()
 
     this.columns = res.rows
       .filter(col => col.column_name !== this.geomField)
@@ -112,8 +123,7 @@ export class Postgis implements XYZProvider {
     const res = await this.pool.query(sql.unsafe`
       SELECT st_asgeojson(t.*)
       FROM ${this.table} t
-      WHERE
-        ${wheres};
+      WHERE ${wheres};
     `)
 
     return res.rows as Feature[]
@@ -141,7 +151,8 @@ export class Postgis implements XYZProvider {
     return res.rows[0].st_asmvt
   }
 
-  async updateTile(_x: number, _y: number, _z: number, _tile: Uint8Array): Promise<void> {}
+  async updateTile(_x: number, _y: number, _z: number, _tile: Uint8Array): Promise<void> {
+  }
 
   async close(): Promise<void> {
     await Promise.all([
@@ -159,20 +170,6 @@ export class Postgis implements XYZProvider {
             FROM ${sql.identifier([this.table])}) extent
     `)
 
-    // const rows = await this.pool<{
-    //   xmin: number
-    //   xmax: number
-    //   ymin: number
-    //   ymax: number
-    // }[]>`
-    //   SELECT st_xmin(extent.table_extent) xmin,
-    //          st_ymin(extent.table_extent) ymin,
-    //          st_xmax(extent.table_extent) xmax,
-    //          st_ymax(extent.table_extent) ymax
-    //   FROM (SELECT st_transform(ST_SetSRID(ST_Extent(${this.db(this.geomField)}), ${this.srid}), 4326) as table_extent
-    //         FROM ${this.db(this.table)}) extent
-    // `.execute()
-
     return [rows[0].xmin, rows[0].ymin, rows[0].xmax, rows[0].ymax]
   }
 
@@ -188,5 +185,6 @@ export class Postgis implements XYZProvider {
     }
   }
 
-  async setMetadata(_metadata: XYZProviderMetadata): Promise<void> {}
+  async setMetadata(_metadata: XYZProviderMetadata): Promise<void> {
+  }
 }

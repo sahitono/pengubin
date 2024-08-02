@@ -38,6 +38,18 @@ importers:
       '@maplibre/maplibre-gl-style-spec':
         specifier: ^20.3.0
         version: 20.3.0
+      '@pengubin/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@pengubin/provider-mbtiles':
+        specifier: workspace:*
+        version: link:packages/providers/mbtiles
+      '@pengubin/provider-postgis':
+        specifier: workspace:*
+        version: link:packages/providers/postgis
+      '@pengubin/provider-postgres-table':
+        specifier: workspace:*
+        version: link:packages/providers/postgres-table
       '@sinclair/typebox':
         specifier: ^0.32.34
         version: 0.32.34
@@ -162,6 +174,70 @@ importers:
       unbuild:
         specifier: ^2.0.0
         version: 2.0.0(typescript@5.5.3)
+
+  packages/core: {}
+
+  packages/providers/mbtiles:
+    dependencies:
+      '@pengubin/core':
+        specifier: workspace:*
+        version: link:../../core
+      better-sqlite3:
+        specifier: ^11.1.2
+        version: 11.1.2
+      destr:
+        specifier: ^2.0.3
+        version: 2.0.3
+      radash:
+        specifier: ^12.1.0
+        version: 12.1.0
+      ts-pattern:
+        specifier: ^5.2.0
+        version: 5.2.0
+
+  packages/providers/postgis:
+    dependencies:
+      '@pengubin/core':
+        specifier: workspace:*
+        version: link:../../core
+      destr:
+        specifier: ^2.0.3
+        version: 2.0.3
+      geojson:
+        specifier: ^0.5.0
+        version: 0.5.0
+      slonik:
+        specifier: ^45.6.0
+        version: 45.6.0(zod@3.23.8)
+      ts-pattern:
+        specifier: ^5.2.0
+        version: 5.2.0
+      zod:
+        specifier: ^3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@types/geojson':
+        specifier: ^7946.0.14
+        version: 7946.0.14
+
+  packages/providers/postgres-table:
+    dependencies:
+      '@pengubin/core':
+        specifier: workspace:*
+        version: link:../../core
+      destr:
+        specifier: ^2.0.3
+        version: 2.0.3
+      geojson:
+        specifier: ^0.5.0
+        version: 0.5.0
+      ts-pattern:
+        specifier: ^5.2.0
+        version: 5.2.0
+    devDependencies:
+      '@types/geojson':
+        specifier: ^7946.0.14
+        version: 7946.0.14
 
 packages:
 
@@ -2207,6 +2283,10 @@ packages:
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
+
+  geojson@0.5.0:
+    resolution: {integrity: sha512-/Bx5lEn+qRF4TfQ5aLu6NH+UKtvIv7Lhc487y/c8BdludrCTpiWf9wyI0RTyqg49MFefIAvFDuEi5Dfd/zgNxQ==}
+    engines: {node: '>= 0.10'}
 
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
@@ -6473,6 +6553,8 @@ snapshots:
       wide-align: 1.1.5
 
   gensync@1.0.0-beta.2: {}
+
+  geojson@0.5.0: {}
 
   get-caller-file@2.0.5: {}
 

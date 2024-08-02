@@ -1,8 +1,12 @@
+import { MBTiles } from "@pengubin/provider-mbtiles"
+import { Postgis } from "@pengubin/provider-postgis"
+import type { PostgresTableParam } from "@pengubin/provider-postgres-table"
+import { PostgresTable } from "@pengubin/provider-postgres-table"
+import type { DatabasePool } from "slonik"
+import { createPool } from "slonik"
 import type { TileJSON } from "../types"
 import type { Config } from "../config"
-import { MBTiles } from "./mbtiles"
 import type { PostgisProviderParam } from "./postgis"
-import { Postgis } from "./postgis"
 import type { Providers } from "./index"
 
 export interface ProviderInfo<P> {
@@ -13,19 +17,39 @@ export interface ProviderInfo<P> {
 
 export class ProviderRepository<P extends Providers = Providers> {
   private repo = new Map<string, ProviderInfo<P>>()
+  private poolCache = new Map<string, DatabasePool>()
 
   constructor() {
   }
 
+  private async getOrCreate(url: string): Promise<DatabasePool> {
+    if (this.poolCache.has(url)) {
+      return this.poolCache.get(url)!
+    }
+
+    const pool = await createPool(url)
+    this.poolCache.set(url, pool)
+    return pool
+  }
+
   async init(providers: Config["providers"]) {
     for (const name of Object.keys(providers)) {
-      const type = providers[name].type.toLowerCase()
+      const type = providers[name].type.toLowerCase() as P["type"]
       let provider: P
+
       if (type === "mbtiles") {
         provider = new MBTiles(providers[name].url) as P
       }
       else if (type === "postgis") {
-        provider = new Postgis(providers[name] as unknown as PostgisProviderParam) as P
+        const config = providers[name] as unknown as PostgisProviderParam
+        const pool = await this.getOrCreate(config.url)
+        provider = new Postgis({
+          ...config,
+          pool,
+        }) as P
+      }
+      else if (type === "postgres-table") {
+        provider = new PostgresTable(providers[name] as unknown as PostgresTableParam) as P
       }
       else {
         throw new Error(`unsupported provider = ${type}`)

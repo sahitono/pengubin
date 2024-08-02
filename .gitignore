@@ -282,3 +282,4 @@ config.jsonc
 *.json
 *.mbtiles-shm
 *.mbtiles-wal
+docker-volume

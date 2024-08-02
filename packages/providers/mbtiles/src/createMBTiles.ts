@@ -1,6 +1,6 @@
 import Database from "better-sqlite3"
-import { removeNewLine } from "../../utils/removeNewLine"
-import { MBTiles } from "./index"
+import { removeNewLine } from "@pengubin/core"
+import { MBTiles } from "./MBTiles"
 
 const CreateFlatSQL = `
   CREATE TABLE IF NOT EXISTS tiles

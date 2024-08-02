@@ -1,6 +1,6 @@
 import postgres from "postgres"
 import { get, objectify } from "radash"
-import type { XYZProvider, XYZProviderMetadata } from "../interface"
+import type { XYZProvider, XYZProviderMetadata } from "@pengubin/core"
 
 export interface PostgresTableParam {
   url: string

@@ -3,8 +3,8 @@ import Database from "better-sqlite3"
 import { get, objectify } from "radash"
 import destr from "destr"
 import { Pattern, match } from "ts-pattern"
-import type { XYZProvider, XYZProviderMetadata } from "../interface"
-import { removeNewLine } from "../../utils/removeNewLine"
+import type { XYZProvider, XYZProviderMetadata } from "@pengubin/core"
+import { removeNewLine } from "@pengubin/core"
 
 export enum MBTileSchemaType {
   FLAT = "flat",

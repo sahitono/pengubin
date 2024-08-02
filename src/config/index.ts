@@ -6,12 +6,13 @@ import defu from "defu"
 import consola from "consola"
 import Ajv from "ajv"
 import { Pattern, match } from "ts-pattern"
+import type { Providers } from "../providers"
 import { ConfigSchema } from "./schema"
 
 export interface Config {
   styles: Record<string, StyleSpecification>
   providers: Record<string, {
-    type: string
+    type: Providers["type"]
     url: string
   } & Record<string, unknown>>
   options: {
