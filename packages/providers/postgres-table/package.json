@@ -1,0 +1,42 @@
+{
+    "name": "@pengubin/provider-postgres-table",
+    "version": "0.3.0",
+    "description": "",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "main": "./dist/index.mjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "typesVersions": {
+        "*": {
+            "*": [
+                "./dist/*",
+                "./dist/index.d.ts"
+            ]
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "unbuild",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@pengubin/core": "workspace:*",
+        "destr": "^2.0.3",
+        "geojson": "^0.5.0",
+        "ts-pattern": "^5.2.0"
+    },
+    "devDependencies": {
+        "@types/geojson": "^7946.0.14"
+    }
+}
