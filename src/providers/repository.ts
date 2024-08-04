@@ -4,9 +4,9 @@ import type { PostgresTableParam } from "@pengubin/provider-postgres-table"
 import { PostgresTable } from "@pengubin/provider-postgres-table"
 import type { DatabasePool } from "slonik"
 import { createPool } from "slonik"
+import type { PostgisProviderParam } from "@pengubin/provider-postgis"
 import type { TileJSON } from "../types"
 import type { Config } from "../config"
-import type { PostgisProviderParam } from "./postgis"
 import type { Providers } from "./index"
 
 export interface ProviderInfo<P> {
@@ -42,7 +42,7 @@ export class ProviderRepository<P extends Providers = Providers> {
       }
       else if (type === "postgis") {
         const config = providers[name] as unknown as PostgisProviderParam
-        const pool = await this.getOrCreate(config.url)
+        const pool = await this.getOrCreate(config.url!)
         provider = new Postgis({
           ...config,
           pool,

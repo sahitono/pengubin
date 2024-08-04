@@ -8,7 +8,7 @@ export interface PostgresTableParam {
 }
 
 export class PostgresTable implements XYZProvider {
-  type = "postgres-table"
+  type = "postgres-table" as const
   format: string = "pbf"
   private readonly url: string
   private readonly table: string

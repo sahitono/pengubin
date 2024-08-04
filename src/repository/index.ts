@@ -1,9 +1,14 @@
+import * as path from "node:path"
+import { readdirSync } from "node:fs"
+import { resolve } from "node:path"
 import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import { ProviderRepository } from "../providers/repository"
 import type { RendererPool } from "../map-renderer/pool"
 import { createPool } from "../map-renderer/pool"
 import type { Config } from "../config"
 import type { TileJSON } from "../types"
+import type { RenderedSprite } from "../sprites"
+import { renderSprite } from "../sprites"
 
 export async function createRepo(config: Config) {
   const data = new ProviderRepository()
@@ -15,8 +20,9 @@ export async function createRepo(config: Config) {
     pool: RendererPool
     tileJSON: TileJSON
   }>()
+  const sprite = new Map<string, RenderedSprite>()
 
-  const promises: Promise<unknown>[] = []
+  const promises: Promise<any>[] = []
   for (const styleName of Object.keys(config.styles)) {
     const value = config.styles[styleName]
     const parsed = { ...value } as StyleSpecification
@@ -33,18 +39,6 @@ export async function createRepo(config: Config) {
 
     const minzoom = Math.min(...parsed.layers.map(l => l?.minzoom ?? 0))
     const maxzoom = Math.max(...parsed.layers.map(l => l?.maxzoom ?? 20))
-    // const bounds = Object.values(parsed.sources).map((value) => {
-    //   if (value.type === "vector") {
-    //     const sourceId = value.ti
-    //     return value.bounds
-    //   }
-    // }).filter(v => v != null)
-    // console.log(bounds)
-    // const center: [number, number] = [
-    //   bounds[0][0] + Math.abs((bounds[0][2] - bounds[0][0]) / 2),
-    //   bounds[0][1] + Math.abs((bounds[0][3] - bounds[0][1]) / 2),
-    //   // (maxzoom - minzoom) / 2,
-    // ]
 
     style.set(styleName, {
       parsed,
@@ -62,12 +56,34 @@ export async function createRepo(config: Config) {
     })
   }
 
+  const createSprite = (location: string, name?: string) => {
+    return new Promise<void>((resolve, reject) => {
+      const parsed = path.parse(location)
+      renderSprite({
+        location,
+      }).then((rendered) => {
+        sprite.set(name ?? parsed.name, rendered)
+        resolve()
+      }).catch((e) => {
+        reject(e)
+      })
+    })
+  }
+
+  promises.push(createSprite(config.options.sprites, "default"))
+  readdirSync(config.options.sprites, { withFileTypes: true })
+    .filter(f => f.isDirectory())
+    .forEach((f) => {
+      promises.push(createSprite(resolve(f.parentPath, f.name)))
+    })
+
   await Promise.all(promises)
 
   return {
     config,
     data,
     style,
+    sprite,
   }
 }
 

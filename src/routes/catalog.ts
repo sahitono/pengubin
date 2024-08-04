@@ -1,6 +1,6 @@
 import { get } from "radash"
 import type { FastifyInstance } from "fastify"
-import type { MBTiles } from "../providers/mbtiles"
+import type { MBTiles } from "@pengubin/provider-mbtiles"
 import type { ProviderInfo } from "../providers/repository"
 import { DataContentType } from "../constants/DataContentType"
 
@@ -26,9 +26,19 @@ export async function apiCatalog(server: FastifyInstance) {
       styleInfo[styleKey] = `${hostUrl}/style/${styleKey}`
     }
 
+    const spriteInfo: Record<string, string> = {}
+    for await (const spriteKey of server.repo.sprite.keys()) {
+      if (spriteKey === "default") {
+        spriteInfo[spriteKey] = `${hostUrl}/sprite`
+        continue
+      }
+      spriteInfo[spriteKey] = `${hostUrl}/sprite/${spriteKey}`
+    }
+
     return res.send({
       data: dataInfo,
       style: styleInfo,
+      sprite: spriteInfo,
     })
   })
 }

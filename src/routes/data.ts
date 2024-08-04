@@ -3,6 +3,7 @@ import type { Static } from "@sinclair/typebox"
 import { Type } from "@sinclair/typebox"
 import fastifyCaching from "@fastify/caching"
 import { badRequest, notFound } from "@hapi/boom"
+import type { Postgis } from "@pengubin/provider-postgis"
 import { DataContentType } from "../constants/DataContentType"
 import type { XYZParamType } from "../utils/validator"
 import { XYZParam } from "../utils/validator"
@@ -10,7 +11,6 @@ import type { FastifyTypeBoxInstance } from "../createServer"
 import type { ValidFormat } from "../utils/createEmptyResponse"
 import { createEmptyResponse } from "../utils/createEmptyResponse"
 import { unzipPromise } from "../utils/unzipPromise"
-import type { Postgis } from "../providers/postgis"
 
 const Param = Type.Object({
   name: Type.String(),

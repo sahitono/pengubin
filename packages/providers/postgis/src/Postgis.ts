@@ -18,7 +18,7 @@ export interface PostgisProviderParam {
 }
 
 export class Postgis implements XYZProvider {
-  type = "postgis"
+  type = "postgis" as const
   readonly format: string = "pbf"
   readonly url: string
   readonly table: string

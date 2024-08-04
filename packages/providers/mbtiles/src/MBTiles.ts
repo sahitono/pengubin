@@ -48,7 +48,7 @@ export type MBTilesMetadataKey =
 type UpdateOrInsertTx = Transaction<(tile: [number, number, number, Uint8Array]) => Database.RunResult>
 
 export class MBTiles implements XYZProvider {
-  type = "mbtiles"
+  type = "mbtiles" as const
   readonly format: string
   readonly db: IDatabase
   private readTileStmt: Statement<[number, number, number], TileResult>

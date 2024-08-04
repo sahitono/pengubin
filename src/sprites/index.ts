@@ -1,6 +1,7 @@
 import { readdir } from "node:fs/promises"
-import { resolve } from "node:path"
+import { parse, resolve } from "node:path"
 import type { Dirent } from "node:fs"
+import type Buffer from "node:buffer"
 import sharp from "sharp"
 import ShelfPack from "@mapbox/shelf-pack"
 
@@ -16,13 +17,15 @@ export type SpriteMerged = Record<string, SpritePosition>
 
 const DEFAULT_SIZE = 64 as const
 
+export interface RenderedSprite {
+  sprite: SpriteMerged
+  image: Buffer
+}
+
 export async function renderSprite(opt: {
   location: string
   ratios?: number[]
-}): Promise<{
-    sprite: SpriteMerged
-    image: Buffer
-  }> {
+}): Promise<RenderedSprite> {
   const dirents = await readdir(opt.location, { withFileTypes: true })
   const files: {
     width: number
@@ -45,25 +48,11 @@ export async function renderSprite(opt: {
   const shelf = new ShelfPack(1, 1, { autoResize: true })
   const packed = shelf.pack(files)
 
-  const canvas = sharp({
-    create: {
-      width: shelf.w,
-      height: shelf.h,
-      channels: 4,
-      background: {
-        r: 0,
-        g: 0,
-        b: 0,
-        alpha: 0,
-      },
-    },
-  })
-
   const sprite: SpriteMerged = {}
 
   const composites: sharp.OverlayOptions[] = await Promise.all(packed.map(async (bin) => {
     const fileIndex = files.findIndex(f => f.id === bin.id)!
-    sprite[String(bin.id)] = {
+    sprite[parse(String(bin.id)).name] = {
       width: bin.w,
       height: bin.h,
       y: bin.y,
@@ -77,6 +66,20 @@ export async function renderSprite(opt: {
       left: bin.x,
     }
   }))
+
+  const canvas = sharp({
+    create: {
+      width: shelf.w,
+      height: shelf.h,
+      channels: 4,
+      background: {
+        r: 0,
+        g: 0,
+        b: 0,
+        alpha: 0,
+      },
+    },
+  })
 
   const composited = canvas.composite(composites).toFormat("png")
   const buffer = await composited.toBuffer()

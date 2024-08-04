@@ -4,6 +4,7 @@ import fastifyHelmet from "@fastify/helmet"
 import fastifyCors from "@fastify/cors"
 import fastifyGracefulShutdown from "fastify-graceful-shutdown"
 import fastifyCaching from "@fastify/caching"
+import fastifySwagger from "@fastify/swagger"
 import type { Config } from "./config"
 import { createRepo } from "./repository"
 import { apiCatalog } from "./routes/catalog"
@@ -12,6 +13,7 @@ import { createServer } from "./createServer"
 import { apiData } from "./routes/data"
 import { boomPlugin } from "./plugins/boom-plugin"
 import { apiStyle } from "./routes/style"
+import { apiSprite } from "./routes/sprite"
 
 export async function startServer(config: Config) {
   const repo = await createRepo(config)
@@ -44,17 +46,47 @@ export async function startServer(config: Config) {
   server.register(repositoryPlugin, {
     repo,
   })
+  server.register(fastifySwagger, {
+    openapi: {
+      openapi: "3.0.0",
+      info: {
+        title: "Pengubin API",
+        version: "0.1.0",
+      },
+      servers: [
+        {
+          url: "http://localhost:3000",
+          description: "Development server",
+        },
+      ],
+      tags: [
+        { name: "data", description: "Data source provider in XYZ" },
+        { name: "style", description: "Style provider and rendered" },
+        { name: "sprite", description: "Sprite generated" },
+      ],
+      components: {},
+      externalDocs: {
+        url: "https://swagger.io",
+        description: "Find more info here",
+      },
+    },
+  })
 
   const prefix = config.options?.prefix ?? "/"
-  server.get(`${prefix}/`, (req, res) => {
+  server.get(`${prefix}`, (_req, _res) => {
     return "Hello"
   })
   server.get(`${prefix}/health`, (req, res) => {
     return res.send("OK")
   })
+  server.get(`${prefix}/docs.json`, (req, res) => {
+    const doc = server.swagger()
+    return res.send(doc)
+  })
   server.register(apiCatalog, { prefix })
   server.register(apiData, { prefix })
   server.register(apiStyle, { prefix })
+  server.register(apiSprite, { prefix })
 
   try {
     await server.listen({

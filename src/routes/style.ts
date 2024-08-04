@@ -5,8 +5,7 @@ import sharp from "sharp"
 import { Type } from "@sinclair/typebox"
 import { badGateway, notFound } from "@hapi/boom"
 import type { FastifyTypeBoxInstance } from "../createServer"
-import { ImageCache } from "../repository/cache/image/ImageCache"
-import { SqliteImageStore } from "../repository/cache/image/SqliteImageStore"
+import { ImageCache, SqliteImageStore } from "../repository/cache"
 
 const Query = Type.Object({
   format: Type.Unsafe<"png" | "jpeg" | "webp">({

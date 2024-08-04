@@ -2,9 +2,7 @@ import { defineBuildConfig } from "unbuild"
 
 export default defineBuildConfig({
   entries: [
-    "src/cli",
     "src/index",
-    "src/providers/index",
   ],
   rollup: {
     emitCJS: true,

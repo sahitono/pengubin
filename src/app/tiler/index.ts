@@ -4,9 +4,9 @@ import { gzipSync } from "node:zlib"
 import { cluster, objectify } from "radash"
 import * as cliProgress from "cli-progress"
 import consola from "consola"
-import type { PostgisProviderParam } from "../../providers/postgis"
-import { Postgis } from "../../providers/postgis"
-import { createMBTiles } from "../../providers/mbtiles/createMBTiles"
+import type { PostgisProviderParam } from "@pengubin/provider-postgis"
+import { Postgis } from "@pengubin/provider-postgis"
+import { createMBTiles } from "@pengubin/provider-mbtiles"
 import { bboxToXYZTiles } from "./lib"
 
 interface RenderParam {
