@@ -17,7 +17,7 @@ export interface Config {
   } & Record<string, unknown>>
   options: {
     allowedOrigin: string | string[]
-    sprites: string
+    sprites?: string
     prefix: string
     port: number
     cache: {
@@ -91,6 +91,10 @@ export async function loadConfig(location: string): Promise<Config> {
   consola.info(`Reading configuration file at ${location}`)
   consola.info(`Has ${Object.keys(config.styles).length} styles`)
   consola.info(`Has ${Object.keys(config.providers).length} data providers`)
+  if (config.options.sprites != null) {
+    consola.info(`Has sprites at ${config.options.sprites}`)
+  }
+
   consola.debug(`Rendered style cache at ${config.options.cache.directory}`)
 
   return configWithDefault

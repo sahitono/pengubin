@@ -70,12 +70,14 @@ export async function createRepo(config: Config) {
     })
   }
 
-  promises.push(createSprite(config.options.sprites, "default"))
-  readdirSync(config.options.sprites, { withFileTypes: true })
-    .filter(f => f.isDirectory())
-    .forEach((f) => {
-      promises.push(createSprite(resolve(f.parentPath, f.name)))
-    })
+  if (config.options.sprites) {
+    promises.push(createSprite(config.options.sprites, "default"))
+    readdirSync(config.options.sprites, { withFileTypes: true })
+      .filter(f => f.isDirectory())
+      .forEach((f) => {
+        promises.push(createSprite(resolve(f.parentPath, f.name)))
+      })
+  }
 
   await Promise.all(promises)
 
