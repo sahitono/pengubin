@@ -131,18 +131,18 @@ export class Postgis implements XYZProvider {
 
   async getTile(x: number, y: number, z: number): Promise<Uint8Array | undefined> {
     const sqlText = sql.unsafe`
-      SELECT ST_AsMVT(tile, $1, 4096, $2, $3)
+      SELECT ST_AsMVT(tile, ${this.table}, 4096, ${this.geomField}, ${this.idField})
       FROM (SELECT ST_AsMVTGeom(
                      ST_Transform(ST_CurveToLine(${sql.identifier([this.geomField])}), 3857),
-                     ST_TileEnvelope($4, $5, $6),
+                     ST_TileEnvelope(${z}, ${x}, ${y}),
                      4096, 64, true
-                   ) AS geom
+                   ) AS geom,
               ${sql.join(this.columns.map(c => sql.identifier([c.name])), sql.fragment`,`)}
             FROM ${sql.identifier([this.schema, this.table])}
-            WHERE "${sql.identifier([this.geomField])}" && ST_Transform(ST_TileEnvelope($4, $5, $6), ${this.srid})) AS tile
+            WHERE ${sql.identifier([this.geomField])} && ST_Transform(ST_TileEnvelope(${z}, ${x}, ${y}), ${this.srid}::int)) AS tile
     `
 
-    const query = this.pool.query(sqlText, [this.table, this.geomField, this.idField, z, x, y])
+    const query = this.pool.query(sqlText)
     const res = await query
     if (res.rowCount == null || res.rowCount === 0) {
       return

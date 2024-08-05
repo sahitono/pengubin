@@ -18,6 +18,16 @@ interface RenderParam {
   maxzoom: number
 }
 
+// export const createRenderParam = (location: string) {
+//   const default: RenderParam = {
+//       mbtile: string
+//   bbox: [number, number, number, number]
+//   concurrency: number
+//   minzoom: number
+//   maxzoom: number
+//   }
+// }
+
 export async function startRender(param: RenderParam) {
   consola.info("Start tiling")
 
