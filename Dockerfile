@@ -19,25 +19,17 @@ FROM base AS build-stage
 RUN corepack enable
 RUN corepack prepare pnpm@9.4.0 --activate
 
-COPY .npmrc package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm-store,target=/root/.pnpm-store \
-    pnpm install --frozen-lockfile
-
 COPY . .
-RUN mkdir -p dist && pnpm build
-
-FROM base AS install-prod-stage
-ENV NODE_ENV=production
-
-RUN corepack enable
-RUN corepack prepare pnpm@9.4.0 --activate
-
-COPY .npmrc package.json pnpm-lock.yaml ./
-COPY --from=build-stage /app/dist .
 RUN --mount=type=cache,id=pnpm-store,target=/root/.pnpm-store \
     pnpm install --frozen-lockfile
 
+RUN mkdir -p dist && pnpm build
+RUN pnpm deploy --filter=pengubin --prod /prod/pengubin/
 
-FROM install-prod-stage AS prod-stage
+FROM base AS prod-stage
+ENV NODE_ENV=PRODUCTION
+
+COPY --from=build-stage /prod/pengubin .
 COPY docker-entrypoint.sh .
+
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

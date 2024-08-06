@@ -38,7 +38,7 @@
     "release": "bumpp && pnpm publish",
     "start": "node dist/cli.mjs",
     "start:ts": "tsx src/cli.ts",
-    "prepare": "husky"
+    "prepare": "node .husky/install.mjs"
   },
   "dependencies": {
     "@fastify/caching": "^8.4.0",

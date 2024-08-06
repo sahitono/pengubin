@@ -7,7 +7,7 @@ if ! which -- "${1}"; then
   export DISPLAY=:99
   Xvfb "${DISPLAY}" -nolisten unix &
 #  exec pnpm start:ts -- run ./data/docker.config.json "$@"
-  exec node ./cli.mjs run ./data/docker.config.json "$@"
+  exec node ./dist/cli.mjs run ./data/docker.config.json "$@"
 fi
 
 exec "$@"
