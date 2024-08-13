@@ -3,6 +3,7 @@ import { Postgis } from "@pengubin/provider-postgis"
 import type { PostgresTableParam } from "@pengubin/provider-postgres-table"
 import { PostgresTable } from "@pengubin/provider-postgres-table"
 import type { DatabasePool } from "slonik"
+import Sqlite from "better-sqlite3"
 import { createPool } from "slonik"
 import type { PostgisProviderParam } from "@pengubin/provider-postgis"
 import type { TileJSON } from "../types"
@@ -17,17 +18,18 @@ export interface ProviderInfo<P> {
 
 export class ProviderRepository<P extends Providers = Providers> {
   private repo = new Map<string, ProviderInfo<P>>()
-  private poolCache = new Map<string, DatabasePool>()
+  private poolCache = new Map<string, DatabasePool | Sqlite.Database>()
 
   constructor() {
   }
 
-  private async getOrCreate(url: string): Promise<DatabasePool> {
+  private async getOrCreate(url: string): Promise<DatabasePool | Sqlite.Database> {
     if (this.poolCache.has(url)) {
       return this.poolCache.get(url)!
     }
 
-    const pool = await createPool(url)
+    const pool = !url.includes("postgresql") ? new Sqlite(url) : await createPool(url)
+
     this.poolCache.set(url, pool)
     return pool
   }
@@ -42,7 +44,7 @@ export class ProviderRepository<P extends Providers = Providers> {
       }
       else if (type === "postgis") {
         const config = providers[name] as unknown as PostgisProviderParam
-        const pool = await this.getOrCreate(config.url!)
+        const pool = await this.getOrCreate(config.url!) as DatabasePool
         provider = new Postgis({
           ...config,
           pool,
