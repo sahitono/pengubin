@@ -1,17 +1,19 @@
+import { createRequire } from "node:module"
+import process from "node:process"
 import type { FastifyServerOptions } from "fastify"
 import fastify from "fastify"
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox"
 
-/**
- * Used to provide type safety for Fastify Instance easier
- */
-export function createServer() {
-  const env = process.env.NODE_ENV || "development"
+const require = createRequire(import.meta.url)
 
-  return fastify({
-    logger: envToLogger[env],
-    trustProxy: true,
-  }).withTypeProvider<TypeBoxTypeProvider>()
+function moduleIsAvailable(path: string) {
+  try {
+    require.resolve(path)
+    return true
+  }
+  catch (e) {
+    return false
+  }
 }
 
 const envToLogger: Record<string, FastifyServerOptions["logger"]> = {
@@ -24,10 +26,24 @@ const envToLogger: Record<string, FastifyServerOptions["logger"]> = {
         colorize: true,
       },
     },
-    level: "debug"
+    level: "debug",
   },
   production: true,
   test: false,
+}
+
+/**
+ * Used to provide type safety for Fastify Instance easier
+ */
+export function createServer() {
+  const env = process.env.NODE_ENV || "development"
+
+  const hasPinoPretty = moduleIsAvailable("pino-pretty")
+
+  return fastify({
+    logger: hasPinoPretty ? envToLogger[env] : true,
+    trustProxy: true,
+  }).withTypeProvider<TypeBoxTypeProvider>()
 }
 
 export type FastifyTypeBoxInstance = ReturnType<typeof createServer>
