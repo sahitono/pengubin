@@ -1,60 +1,62 @@
 import { readFileSync, writeFileSync } from "node:fs"
-import { resolve } from "node:path"
+import * as process from "node:process"
+import { extname, resolve } from "node:path"
 import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
+import { v8, validateStyleMin } from "@maplibre/maplibre-gl-style-spec"
 import destr from "destr"
 import defu from "defu"
 import consola from "consola"
 import Ajv from "ajv"
 import { Pattern, match } from "ts-pattern"
-import type { Providers } from "../providers"
+import * as toml from "smol-toml"
+import type { Config, ConfigUnparsed, NonNullableConfig } from "./schema"
 import { ConfigSchema } from "./schema"
-
-export interface Config {
-  styles: Record<string, StyleSpecification>
-  providers: Record<string, {
-    type: Providers["type"]
-    url: string
-  } & Record<string, unknown>>
-  options: {
-    allowedOrigin: string | string[]
-    sprites?: string
-    prefix: string
-    port: number
-    cache: {
-      ttl: number
-      directory: string
-    }
-    rateLimit: {
-      windowMs: number
-      limit: number
-    }
-  }
-}
-
-interface ConfigUnparsed extends Omit<Config, "styles"> {
-  styles: Record<string, StyleSpecification | string>
-}
 
 /**
  * Parse config and change url style to json
  * @param location
  */
-export async function loadConfig(location: string): Promise<Config> {
-  const config = destr<ConfigUnparsed>(readFileSync(location, { encoding: "utf-8" }))
+export async function loadConfig(location: string): Promise<NonNullableConfig> {
+  const extension = extname(location)
+  let config: ConfigUnparsed
+
+  // Read config based on file extension
+  if (extension === ".toml") {
+    config = toml.parse(readFileSync(location, { encoding: "utf-8" })) as ConfigUnparsed
+  }
+  else if (extension === ".json") {
+    config = destr<ConfigUnparsed>(readFileSync(location, { encoding: "utf-8" }))
+  }
+  else {
+    consola.error(`Unsupported extension: ${extension}`)
+    process.exit(1)
+  }
+
   const styles: Config["styles"] = {}
   for (const [key, value] of Object.entries(config.styles)) {
-    await match(value)
+    const styleMgl = await match(value)
+      .returnType<Promise<StyleSpecification>>()
       .with(Pattern.string, async (v) => {
         const isOnline = v.includes("http")
         if (isOnline) {
-          styles[key] = await (await fetch(value as string)).json()
-          return
+          const res = await (await fetch(value as string)).json()
+          return res as StyleSpecification
         }
 
-        styles[key] = destr(readFileSync(value as string, { encoding: "utf-8" }))
+        return destr<StyleSpecification>(readFileSync(value as string, { encoding: "utf-8" }))
       }).otherwise(async (v) => {
-        styles[key] = v
+        return v
       })
+
+    const errors = validateStyleMin(styleMgl, v8)
+    if (errors.length > 0) {
+      consola.error(`Broken style: ${key} =`)
+      for (const error of errors) {
+        consola.error(`- LINE: ${error.line} @ ${error.identifier}. ${error.message}`)
+      }
+      process.exit(1)
+    }
+    styles[key] = styleMgl
   }
   const configParsed: Config = {
     ...config,
@@ -74,33 +76,33 @@ export async function loadConfig(location: string): Promise<Config> {
 
   const configWithDefault = defu(configParsed, {
     options: {
-      allowedOrigin: "*",
-      port: 3000,
-      prefix: "/",
+      allowedOrigin: ConfigSchema.properties.options.properties.allowedOrigin.default,
+      port: ConfigSchema.properties.options.properties.port.default,
+      prefix: ConfigSchema.properties.options.properties.prefix.default,
       cache: {
-        ttl: 60 * 1000,
-        directory: "./",
+        ttl: ConfigSchema.properties.options.properties.cache.properties.ttl.default,
+        directory: ConfigSchema.properties.options.properties.cache.properties.directory.default,
       },
       rateLimit: {
-        windowMs: 15 * 60 * 1000,
-        limit: 10000,
+        windowMs: ConfigSchema.properties.options.properties.rateLimit.properties.windowMs.default,
+        limit: ConfigSchema.properties.options.properties.rateLimit.properties.limit.default,
       },
     } as Config["options"],
-  }) as Config
+  }) as NonNullableConfig
 
   consola.info(`Reading configuration file at ${location}`)
   consola.info(`Has ${Object.keys(config.styles).length} styles`)
   consola.info(`Has ${Object.keys(config.providers).length} data providers`)
-  if (config.options.sprites != null) {
+  if (config?.options?.sprites != null) {
     consola.info(`Has sprites at ${config.options.sprites}`)
   }
 
-  consola.debug(`Rendered style cache at ${config.options.cache.directory}`)
+  consola.debug(`Rendered style cache at ${configWithDefault.options.cache.directory}`)
 
   return configWithDefault
 }
 
-const InitConfig = {
+const InitConfig: ConfigUnparsed = {
   options: {
     port: 3000,
     prefix: "/",
@@ -113,19 +115,38 @@ const InitConfig = {
       limit: 10000,
     },
   },
-  styles: {},
-  providers: {},
-} as ConfigUnparsed
+  styles: {
+    styleName1: "location of style.json",
+    styleName2: "location of style.json",
+  },
+  providers: {
+    providerName1: {
+      type: "mbtiles",
+      url: "location of mbtiles",
+    },
+    providerName2: {
+      type: "postgis",
+      url: "postgresql://username:password@localhost:port/database",
+      table: "tableName",
+      idField: "idColumn",
+      geomField: "geom column",
+    },
+  },
+}
 
+export type SupportedExtension = "json" | "toml"
 /**
- * Initialize Configuration with dummy file
+ * Initialize Configuration with dummy file in either JSON or TOML
  * @param location
+ * @param format - File format, either 'json' or 'toml'
  */
-export function initConfig(location: string) {
-  const filepath = resolve(location, "config.json")
+export function initConfig(location: string, format: SupportedExtension = "json") {
+  const filepath = resolve(location, `config.${format}`)
 
   consola.info("Creating config file at")
   consola.info(filepath)
 
-  writeFileSync(filepath, JSON.stringify(InitConfig, null, 2), { encoding: "utf-8" })
+  const content = format === "toml" ? toml.stringify(InitConfig) : JSON.stringify(InitConfig, null, 2)
+
+  writeFileSync(filepath, content)
 }

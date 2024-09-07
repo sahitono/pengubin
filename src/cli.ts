@@ -4,6 +4,7 @@ import { get } from "radash"
 import consola from "consola"
 import type { Bounds } from "@pengubin/core"
 import pkg from "../package.json"
+import type { SupportedExtension } from "./config"
 import { initConfig, loadConfig } from "./config"
 import { startServer } from "./server"
 import { start as startWeb2MBTiles } from "./app/web2mbtiles"
@@ -44,12 +45,15 @@ program
       })
     }),
   )
-  .addCommand(new Command("init")
-    .description("init configuration file")
-    .action((location?: string) => {
-      initConfig(location ?? import.meta.dirname)
-      exit(0)
-    }))
+
+program.command("init").description("init configuration file")
+  .description("init configuration file")
+  .addArgument(new Argument("<location>", "location of mbtiles").argRequired())
+  .addOption(new Option("-f, --format <format>", "json or toml").default("toml"))
+  .action((location?: string, opt?: { format?: SupportedExtension }) => {
+    initConfig(location ?? import.meta.dirname, opt?.format)
+    exit(0)
+  })
 
 program.command("web2mbtiles").description("dump web xyz to mbtiles")
   .addArgument(new Argument("<location>", "location of mbtiles").argRequired())
