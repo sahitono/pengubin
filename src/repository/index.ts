@@ -5,12 +5,12 @@ import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import { ProviderRepository } from "../providers/repository"
 import type { RendererPool } from "../map-renderer/pool"
 import { createPool } from "../map-renderer/pool"
-import type { Config } from "../config"
+import type { NonNullableConfig } from "../config/schema"
 import type { TileJSON } from "../types"
-import type { RenderedSprite } from "../sprites"
+import type { RenderedSprites } from "../sprites"
 import { renderSprite } from "../sprites"
 
-export async function createRepo(config: Config) {
+export async function createRepo(config: NonNullableConfig) {
   const data = new ProviderRepository()
   await data.init(config.providers)
 
@@ -20,7 +20,7 @@ export async function createRepo(config: Config) {
     pool: RendererPool
     tileJSON: TileJSON
   }>()
-  const sprite = new Map<string, RenderedSprite>()
+  const sprite = new Map<string, RenderedSprites>()
 
   const promises: Promise<any>[] = []
   for (const styleName of Object.keys(config.styles)) {

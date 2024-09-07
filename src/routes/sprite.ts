@@ -1,16 +1,31 @@
 import { notFound } from "@hapi/boom"
 import { Type } from "@sinclair/typebox"
 import type { FastifyTypeBoxInstance } from "../createServer"
+import type { RenderedSprite } from "../sprites"
 
 export async function apiSprite(server: FastifyTypeBoxInstance) {
   const { sprite } = server.repo
-  const getOrNotFound = (key?: string) => {
+  const getOrNotFound = (key?: string, ratio: string = "1"): RenderedSprite => {
     const rendered = sprite.get(key ?? "default")
     if (rendered == null) {
       throw notFound("Sprite not found")
     }
 
-    return rendered
+    if (!Object.hasOwn(rendered, ratio)) {
+      throw notFound("Sprite ratio not found")
+    }
+
+    return rendered[ratio]
+  }
+
+  const extractName = (pathName: string): { name: string, ratio: string } => {
+    const names = pathName.split("@")
+    const name = names[0]
+    const ratio = names.length > 1 ? names[1].replaceAll("x", "") : "1"
+    return {
+      name,
+      ratio,
+    }
   }
 
   server.get("/sprite", async (req, res) => {
@@ -51,7 +66,9 @@ export async function apiSprite(server: FastifyTypeBoxInstance) {
       }),
     },
   }, async (req, res) => {
-    const rendered = getOrNotFound(req.params.name)
+    const path = extractName(req.params.name)
+    const rendered = getOrNotFound(path.name, path.ratio)
+
     res.header("content-type", "image/png")
     return res.send(rendered.image)
   })
@@ -63,7 +80,8 @@ export async function apiSprite(server: FastifyTypeBoxInstance) {
       }),
     },
   }, async (req, res) => {
-    const rendered = getOrNotFound(req.params.name)
+    const path = extractName(req.params.name)
+    const rendered = getOrNotFound(path.name, path.ratio)
     return res.send(rendered.sprite)
   })
 }

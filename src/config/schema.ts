@@ -27,6 +27,9 @@ export const ConfigSchema = Type.Object({
 export type Config = Omit<Static<typeof ConfigSchema>, "providers"> & {
   providers: Record<string, { type: string, url: string } & Record<string, unknown>>
 }
+export type ConfigParsed = Omit<Config, "styles"> & {
+  styles: Record<string, StyleSpecification>
+}
 export type ConfigUnparsed = Omit<Config, "styles"> & {
   styles: Record<string, StyleSpecification | string>
 }
@@ -48,7 +51,8 @@ type NonNullableConfigPart = Config["options"] & {
     limit: NonNullable<ConfigRateLimit["limit"]>
   }
 }
-export type NonNullableConfig = Omit<Config, "options"> & {
+export type NonNullableConfig = Omit<Config, "options" | "styles"> & {
+  styles: Record<string, StyleSpecification>
   options: NonNullableConfigPart
 }
 
