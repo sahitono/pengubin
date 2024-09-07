@@ -166,7 +166,7 @@ export class Postgis implements XYZProvider {
              st_ymin(extent.table_extent) ymin,
              st_xmax(extent.table_extent) xmax,
              st_ymax(extent.table_extent) ymax
-      FROM (SELECT st_transform(ST_SetSRID(ST_Extent(${sql.identifier([this.geomField])}), ${this.srid}), 4326) as table_extent
+      FROM (SELECT st_transform(ST_SetSRID(ST_Extent(${sql.identifier([this.geomField])}::geometry), ${this.srid}), 4326) as table_extent
             FROM ${sql.identifier([this.table])}) extent
     `)
 
