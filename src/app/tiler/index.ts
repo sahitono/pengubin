@@ -5,30 +5,22 @@ import { cluster, objectify } from "radash"
 import * as cliProgress from "cli-progress"
 import consola from "consola"
 import type { PostgisProviderParam } from "@pengubin/provider-postgis"
-import { Postgis } from "@pengubin/provider-postgis"
 import { createMBTiles } from "@pengubin/provider-mbtiles"
+import { Postgis } from "@pengubin/provider-postgis"
+
+import type { Bounds } from "../../types"
 import { bboxToXYZTiles } from "./lib"
 
 interface RenderParam {
   postgis: PostgisProviderParam
   mbtile: string
-  bbox: [number, number, number, number]
+  bbox: Bounds
   concurrency: number
   minzoom: number
   maxzoom: number
 }
 
-// export const createRenderParam = (location: string) {
-//   const default: RenderParam = {
-//       mbtile: string
-//   bbox: [number, number, number, number]
-//   concurrency: number
-//   minzoom: number
-//   maxzoom: number
-//   }
-// }
-
-export async function startRender(param: RenderParam) {
+export async function startTiling(param: RenderParam) {
   consola.info("Start tiling")
 
   const db = await createMBTiles(param.mbtile)
@@ -53,7 +45,6 @@ export async function startRender(param: RenderParam) {
       let tiled = await dbSource.getTile(tile.x, tile.y, tile.zoom)
 
       if (tiled == null) {
-        consola.error(`Shit tile is null = ${tile.x}, ${tile.y}, ${tile.zoom}`)
         tiled = Buffer.alloc(0)
       }
 
