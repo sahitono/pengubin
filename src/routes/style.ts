@@ -4,8 +4,13 @@ import { get } from "radash"
 import sharp from "sharp"
 import { Type } from "@sinclair/typebox"
 import { badGateway, notFound } from "@hapi/boom"
+import fp from "fastify-plugin"
 import type { FastifyTypeBoxInstance } from "../createServer"
 import { ImageCache, SqliteImageStore } from "../repository/cache"
+
+export const apiStylePlugin = fp(async (server, opt: { prefix: string }) => {
+  server.register(apiStyle, { prefix: opt.prefix })
+})
 
 const Query = Type.Object({
   format: Type.Unsafe<"png" | "jpeg" | "webp">({
@@ -18,10 +23,6 @@ interface FilterLayer {
   layerId: string
   filter: []
 }
-
-const Param = Type.Object({
-  name: Type.String(),
-})
 
 const XYZParamStyle = Type.Object({
   name: Type.String(),

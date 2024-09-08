@@ -21,6 +21,7 @@ export const ConfigSchema = Type.Object({
       windowMs: Type.Optional(Type.Number({ default: 15 * 60 * 1000 })),
       limit: Type.Optional(Type.Number({ default: 10000 })),
     })),
+    appConfigDatabase: Type.Optional(Type.String({ default: "./" })),
   })),
 })
 
@@ -50,6 +51,7 @@ type NonNullableConfigPart = Config["options"] & {
     windowMs: NonNullable<ConfigRateLimit["windowMs"]>
     limit: NonNullable<ConfigRateLimit["limit"]>
   }
+  appConfigDatabase: string
 }
 export type NonNullableConfig = Omit<Config, "options" | "styles"> & {
   styles: Record<string, StyleSpecification>

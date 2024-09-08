@@ -5,21 +5,55 @@ import fastifyCors from "@fastify/cors"
 import fastifyGracefulShutdown from "fastify-graceful-shutdown"
 import fastifyCaching from "@fastify/caching"
 import fastifySwagger from "@fastify/swagger"
-import type { Config } from "./config"
+import type { NonNullableConfig } from "./config/schema"
+import type { Repository } from "./repository"
 import { createRepo } from "./repository"
 import { apiCatalog } from "./routes/catalog"
-import { repositoryPlugin } from "./plugins/repository-plugin"
+import { boomPlugin, repositoryPlugin } from "./plugins"
+import type { FastifyTypeBoxInstance } from "./createServer"
 import { createServer } from "./createServer"
 import { apiData } from "./routes/data"
-import { boomPlugin } from "./plugins/boom-plugin"
 import { apiStyle } from "./routes/style"
 import { apiSprite } from "./routes/sprite"
 
-export async function startServer(config: Config) {
+export async function startServer(config: NonNullableConfig) {
   const repo = await createRepo(config)
 
   const server = createServer()
+  registerPlugin(server, config, repo)
 
+  const prefix = config.options?.prefix ?? "/"
+  // await setupCreateInitialUser(server, prefix)
+
+  server.get(`${prefix}`, (_req, _res) => {
+    return "Hello"
+  })
+  server.get(`${prefix}/health`, (req, res) => {
+    return res.send("OK")
+  })
+  server.get(`${prefix}/docs.json`, (req, res) => {
+    const doc = server.swagger()
+    return res.send(doc)
+  })
+  server.register(apiCatalog, { prefix })
+  server.register(apiData, { prefix })
+  server.register(apiStyle, { prefix })
+  server.register(apiSprite, { prefix })
+
+  try {
+    await server.listen({
+      port: config.options.port,
+      host: "0.0.0.0",
+    })
+    server.log.info(`Server listening at http://0.0.0.0:${config.options.port}${prefix}`)
+  }
+  catch (err) {
+    consola.error("Something went wrong while running server")
+    server.log.error(err)
+  }
+}
+
+function registerPlugin(server: FastifyTypeBoxInstance, config: NonNullableConfig, repo: Repository) {
   server.register(fastifyCors, {
     origin: config.options.allowedOrigin,
   })
@@ -60,9 +94,18 @@ export async function startServer(config: Config) {
         },
       ],
       tags: [
-        { name: "data", description: "Data source provider in XYZ" },
-        { name: "style", description: "Style provider and rendered" },
-        { name: "sprite", description: "Sprite generated" },
+        {
+          name: "data",
+          description: "Data source provider in XYZ",
+        },
+        {
+          name: "style",
+          description: "Style provider and rendered",
+        },
+        {
+          name: "sprite",
+          description: "Sprite generated",
+        },
       ],
       components: {},
       externalDocs: {
@@ -71,32 +114,4 @@ export async function startServer(config: Config) {
       },
     },
   })
-
-  const prefix = config.options?.prefix ?? "/"
-  server.get(`${prefix}`, (_req, _res) => {
-    return "Hello"
-  })
-  server.get(`${prefix}/health`, (req, res) => {
-    return res.send("OK")
-  })
-  server.get(`${prefix}/docs.json`, (req, res) => {
-    const doc = server.swagger()
-    return res.send(doc)
-  })
-  server.register(apiCatalog, { prefix })
-  server.register(apiData, { prefix })
-  server.register(apiStyle, { prefix })
-  server.register(apiSprite, { prefix })
-
-  try {
-    await server.listen({
-      port: config.options.port,
-      host: "0.0.0.0",
-    })
-    server.log.info(`Server listening at http://0.0.0.0:${config.options.port}${prefix}`)
-  }
-  catch (err) {
-    consola.error("Something went wrong while running server")
-    server.log.error(err)
-  }
 }

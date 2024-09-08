@@ -2,8 +2,10 @@ import { get } from "radash"
 import type { Static } from "@sinclair/typebox"
 import { Type } from "@sinclair/typebox"
 import fastifyCaching from "@fastify/caching"
-import { badRequest, notFound } from "@hapi/boom"
+import { badRequest, forbidden, notFound } from "@hapi/boom"
 import type { Postgis } from "@pengubin/provider-postgis"
+import fp from "fastify-plugin"
+import argon2 from "argon2"
 import { DataContentType } from "../constants/DataContentType"
 import type { XYZParamType } from "../utils/validator"
 import { XYZParam } from "../utils/validator"
@@ -11,12 +13,48 @@ import type { FastifyTypeBoxInstance } from "../createServer"
 import type { ValidFormat } from "../utils/createEmptyResponse"
 import { createEmptyResponse } from "../utils/createEmptyResponse"
 import { unzipPromise } from "../utils/unzipPromise"
+import { getApiKey } from "../plugins/auth-api-key"
 
 const Param = Type.Object({
   name: Type.String(),
 })
 
 type ParamType = Static<typeof Param>
+
+export const apiDataPlugin = fp(async (server, opt: { prefix: string }) => {
+  server.addHook("onRequest", async (req, _res) => {
+    const name = get<string>(req.params, "name")
+    if (name == null) {
+      return
+    }
+    const key = getApiKey(req)
+    const service = await req.server.db.selectFrom("service").selectAll()
+      .where("name", "=", name)
+      .where("type", "=", "data")
+      .executeTakeFirst()
+    if (service == null) {
+      throw notFound()
+    }
+
+    if (key == null && !service.isPublic) {
+      throw forbidden()
+    }
+
+    if (key == null && service.isPublic) {
+      return
+    }
+
+    const apiKey = await req.server.db.selectFrom("apiKey").where("prefix", "=", key!.prefix).select(["hashedKey"]).executeTakeFirst()
+    if (apiKey == null) {
+      throw forbidden()
+    }
+    const valid = await argon2.verify(apiKey.hashedKey, key!.key)
+    if (!valid) {
+      throw forbidden()
+    }
+  })
+  server.register(apiData, { prefix: opt.prefix })
+})
 
 export async function apiData(server: FastifyTypeBoxInstance) {
   const { config } = server.repo

@@ -286,3 +286,5 @@ config.jsonc
 docker-volume
 config.toml
 *.config.toml
+.env
+*.env

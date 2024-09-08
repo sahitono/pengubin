@@ -87,6 +87,7 @@ export async function loadConfig(location: string): Promise<NonNullableConfig> {
         windowMs: ConfigSchema.properties.options.properties.rateLimit.properties.windowMs.default,
         limit: ConfigSchema.properties.options.properties.rateLimit.properties.limit.default,
       },
+      appConfigDatabase: ConfigSchema.properties.options.properties.appConfigDatabase.default,
     } as Config["options"],
   }) as NonNullableConfig
 
