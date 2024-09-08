@@ -37,7 +37,7 @@ program
     loadConfig(config ?? "config.json")
       .then(async (config) => {
         consola.info("Migrating database...")
-        await migrate(config.options.appConfigDatabase, {})
+        await migrate(config.options.appConfigDatabase)
         consola.success("Migrating finished successfully")
 
         const { db, conn } = createDb(config.options.appConfigDatabase)
