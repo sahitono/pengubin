@@ -1,3 +1,4 @@
+export * from "./config/schema"
 export * from "./config"
 export * from "./constants/DataContentType"
 export * from "./plugins"

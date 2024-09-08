@@ -7,7 +7,7 @@ import Sqlite from "better-sqlite3"
 import { createPool } from "slonik"
 import type { PostgisProviderParam } from "@pengubin/provider-postgis"
 import type { TileJSON } from "../types"
-import type { Config } from "../config"
+import type { Config } from "../config/schema"
 import type { Providers } from "./index"
 
 export interface ProviderInfo<P> {

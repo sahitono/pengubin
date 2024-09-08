@@ -5,7 +5,7 @@ import fastifyCors from "@fastify/cors"
 import fastifyGracefulShutdown from "fastify-graceful-shutdown"
 import fastifyCaching from "@fastify/caching"
 import fastifySwagger from "@fastify/swagger"
-import type { Config } from "./config"
+import type { NonNullableConfig } from "./config/schema"
 import { createRepo } from "./repository"
 import { apiCatalog } from "./routes/catalog"
 import { repositoryPlugin } from "./plugins/repository-plugin"
@@ -15,7 +15,7 @@ import { boomPlugin } from "./plugins/boom-plugin"
 import { apiStyle } from "./routes/style"
 import { apiSprite } from "./routes/sprite"
 
-export async function startServer(config: Config) {
+export async function startServer(config: NonNullableConfig) {
   const repo = await createRepo(config)
 
   const server = createServer()
