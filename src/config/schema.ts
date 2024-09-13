@@ -57,23 +57,3 @@ export type NonNullableConfig = Omit<Config, "options" | "styles"> & {
   styles: Record<string, StyleSpecification>
   options: NonNullableConfigPart
 }
-
-// function makeOptionalNullable<T extends TObject>(schema: T): T {
-//   const properties = Object.entries(schema.properties).reduce<TProperties>((acc, [key, value]) => {
-//     if (value.kind === "Optional" && key !== "sprites") {
-//       // Replace the optional field with a nullable field
-//       acc[key] = Type.Union([value.type, Type.Null()])
-//     }
-//     else {
-//       acc[key] = value
-//     }
-//     return acc
-//   }, {})
-//
-//   // @ts-expect-error bypass
-//   return Type.Object(properties, schema.options)
-// }
-//
-// // Create the nullable schema by transforming the original schema
-// export const NonNullableConfigSchema = makeOptionalNullable(ConfigSchema)
-// export type NonNullableConfig = Static<typeof NonNullableConfigSchema>

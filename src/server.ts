@@ -94,18 +94,9 @@ function registerPlugin(server: FastifyTypeBoxInstance, config: NonNullableConfi
         },
       ],
       tags: [
-        {
-          name: "data",
-          description: "Data source provider in XYZ",
-        },
-        {
-          name: "style",
-          description: "Style provider and rendered",
-        },
-        {
-          name: "sprite",
-          description: "Sprite generated",
-        },
+        { name: "data", description: "Data source provider in XYZ" },
+        { name: "style", description: "Style provider and rendered" },
+        { name: "sprite", description: "Sprite generated" },
       ],
       components: {},
       externalDocs: {
