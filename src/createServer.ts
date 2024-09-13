@@ -22,7 +22,7 @@ const envToLogger: Record<string, FastifyServerOptions["logger"]> = {
       target: "pino-pretty",
       options: {
         translateTime: "HH:MM:ss Z",
-        ignore: "pid,hostname",
+        ignore: "pid",
         colorize: true,
       },
     },

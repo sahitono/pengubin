@@ -10,6 +10,7 @@ import { initConfig, loadConfig } from "./config"
 import { startServer } from "./server"
 import { start as startWeb2MBTiles } from "./app/web2mbtiles"
 import { startTiling } from "./app/tiler"
+import { Cluster } from "./cluster"
 
 const program = new Command()
 
@@ -19,9 +20,20 @@ program
   .version(pkg.version)
   .command("run <config>")
   .description("run pengubin server with <config>")
-  .action((config?: string) => {
+  .addOption(new Option("-c, --cluster <cluster>", "set cluster count will turn on cluster mode"))
+  .action((config: string, opt: {
+    cluster?: string
+  }) => {
     loadConfig(config ?? "config.json")
-      .then(config => startServer(config))
+      .then((config) => {
+        if (opt.cluster == null) {
+          return startServer(config)
+        }
+
+        const clusterCount = Number.parseInt(opt.cluster)
+        const clustered = new Cluster(config, clusterCount)
+        clustered.run()
+      })
   })
 
 program.command("init").description("init configuration file")
