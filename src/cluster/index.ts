@@ -29,7 +29,7 @@ export class Cluster {
 
   private master() {
     consola.info(`Running in cluster mode at ${this.clusterCount} clusters`)
-    console.log("Master %o is running", process.pid)
+    consola.info("Master %o is running", process.pid)
 
     for (let i = 0; i < this.clusterCount; i++) {
       const fork = cluster.fork()
@@ -39,11 +39,11 @@ export class Cluster {
     }
 
     cluster.on("online", (worker) => {
-      console.log("Worker %o is listening", worker.process.pid)
+      consola.log("Worker %o is listening", worker.process.pid)
     })
 
     cluster.on("exit", (worker) => {
-      console.log("Worker %o died", worker.process.pid)
+      consola.log("Worker %o died", worker.process.pid)
     })
   }
 
