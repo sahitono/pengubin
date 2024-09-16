@@ -5,7 +5,11 @@ import type { ProviderInfo } from "../providers/repository"
 import { DataContentType } from "../constants/DataContentType"
 
 export async function apiCatalog(server: FastifyInstance) {
-  server.get("/catalog", async (req, res) => {
+  server.get("/catalog", {
+    onRequest: server.auth([
+      server.verifyJWT,
+    ]),
+  }, async (req, res) => {
     const dataInfo: Record<string, Record<string, unknown>> = {}
 
     const hostUrl = `${req.protocol}://${req.hostname}${req.url.replaceAll("/catalog", "")}`

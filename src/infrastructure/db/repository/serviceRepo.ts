@@ -55,6 +55,38 @@ export async function upsertService(db: AppDatabase, name: string, createdBy: nu
   return createService(db, name, createdBy, type, config)
 }
 
+export async function deleteService(db: AppDatabase, id: number) {
+  // update
+  await db.transaction(async (tx) => {
+    await tx.delete(serviceTable)
+      .where(eq(serviceTable.id, id))
+      .execute()
+  })
+}
+
+export async function setPublic(db: AppDatabase, id: number, isPublic: boolean) {
+  // update
+  await db.transaction(async (tx) => {
+    await tx.update(serviceTable).set({
+      isPublic,
+    })
+      .where(eq(serviceTable.id, id))
+      .execute()
+  })
+}
+
+export async function getServiceById(db: AppDatabase, id: number) {
+  const rows = await db.select()
+    .from(serviceTable)
+    .where(
+      and(
+        eq(serviceTable.id, id),
+      ),
+    )
+
+  return takeFirst(rows)
+}
+
 export async function getService(db: AppDatabase, name: string, type: string) {
   const rows = await db.select()
     .from(serviceTable)
@@ -67,6 +99,7 @@ export async function getService(db: AppDatabase, name: string, type: string) {
 
   return takeFirst(rows)
 }
+
 export async function getMany(db: AppDatabase, type?: string) {
   return await db.select()
     .from(serviceTable)
@@ -77,7 +110,10 @@ export async function getMany(db: AppDatabase, type?: string) {
 
 export const serviceRepo = {
   getService,
+  getServiceById,
   getMany,
   create: createService,
+  delete: deleteService,
   upsert: upsertService,
+  setPublic,
 }

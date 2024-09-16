@@ -1,5 +1,4 @@
-import { argv, exit, stdin, stdout } from "node:process"
-import readline from "node:readline"
+import { argv, exit } from "node:process"
 import { Argument, Command, Option } from "commander"
 import { get } from "radash"
 import consola from "consola"
@@ -10,25 +9,11 @@ import type { SupportedExtension } from "./config"
 import { initConfig, loadConfig } from "./config"
 import { startServer } from "./server"
 import { start as startWeb2MBTiles } from "./app/web2mbtiles"
-import { migrate } from "./infrastructure/db/migrate"
-import { createDb } from "./infrastructure/db"
-import { userRepo } from "./infrastructure/db/repository/userRepo"
-import { DefaultAdminRole } from "./constants/DefaultAdminRole"
+import { initializeUser } from "./infrastructure/db/migrate"
 import { startTiling } from "./app/tiler"
 import { Cluster } from "./cluster"
 
 const program = new Command()
-
-function readStdIn(rl: readline.Interface, question: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    rl.question(`${question}\n`, (answer) => {
-      resolve(answer)
-      setTimeout(() => {
-        reject(new Error("timeout"))
-      }, 30000)
-    })
-  })
-}
 
 program
   .name(pkg.name)
@@ -37,45 +22,17 @@ program
   .command("run <config>")
   .description("run pengubin server with <config>")
   .addOption(new Option("-c, --cluster <cluster>", "set cluster count will turn on cluster mode"))
+  .addOption(new Option("-iu, --init-user <initUser>", "set cluster count will turn on cluster mode"))
+  .addOption(new Option("-ip, --init-password <initPassword>", "set cluster count will turn on cluster mode"))
   .action((config: string, opt: {
     cluster?: string
+    initUser?: string
+    initPassword?: string
   }) => {
     loadConfig(config ?? "config.json")
       .then(async (config) => {
-        consola.info("Migrating database...")
-        await migrate(config.options.appConfigDatabase)
-        consola.success("Migrating finished successfully")
-
-        const { db, conn } = createDb(config.options.appConfigDatabase)
-        const hasNoUser = (await db.query.userTable.findMany({
-          columns: {
-            id: true,
-          },
-        }).execute()).length === 0
-        if (hasNoUser) {
-          consola.info("Please provide user and password")
-          const rl = readline.createInterface({
-            input: stdin,
-            output: stdout,
-          })
-          const username = await readStdIn(rl, "username:")
-          const password = await readStdIn(rl, "password:")
-          if (username.length < 6 || password.length < 6) {
-            consola.error("password and username should be at least 6")
-            exit(1)
-          }
-          await userRepo.createRole(db, DefaultAdminRole)
-          await userRepo.create(db, {
-            name: username,
-            password,
-            roleId: 1,
-          })
-
-          consola.success(`User ${username} created`)
-        }
-        conn.close()
-
         if (opt.cluster == null) {
+          await initializeUser(config.options.appConfigDatabase, opt.initUser, opt.initPassword)
           return startServer(config)
         }
 

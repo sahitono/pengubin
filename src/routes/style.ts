@@ -9,6 +9,7 @@ import type { FastifyTypeBoxInstance } from "../createServer"
 import { ImageCache, SqliteImageStore } from "../repository/cache"
 
 export const apiStylePlugin = fp(async (server, opt: { prefix: string }) => {
+  // server.addHook("onRequest", server.auth([server.verifyAll]))
   server.register(apiStyle, { prefix: opt.prefix })
 })
 
@@ -49,6 +50,8 @@ declare module "fastify" {
 }
 
 export async function apiStyle(server: FastifyTypeBoxInstance) {
+  server.addHook("onRequest", server.auth([server.verifyAll]))
+
   const {
     config,
     style,
@@ -104,6 +107,7 @@ export async function apiStyle(server: FastifyTypeBoxInstance) {
       params: XYZParamStyle,
       querystring: Query,
     },
+    onRequest: async (_req) => {},
   }, async (req, reply) => {
     const param = req.params
     const query = req.query
@@ -111,7 +115,7 @@ export async function apiStyle(server: FastifyTypeBoxInstance) {
     const cacheOtherKey = `${JSON.stringify(query)}-${param.tileSize}`
 
     const cached = await renderedCache.get(param.name, param.x, param.y, param.z, cacheOtherKey)
-    server.log.info(`found cache for = ${req.url} `)
+    server.log.debug(`found cache for = ${req.url} `)
     if (cached != null) {
       reply.header("content-type", `image/${query.format}`)
       return reply.send(cached).status(200)

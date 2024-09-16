@@ -1,4 +1,5 @@
 import argon2 from "argon2"
+import { eq } from "drizzle-orm"
 import type { AppDatabase } from "../index"
 import { roleTable, userTable } from "../schema"
 
@@ -24,7 +25,17 @@ async function create(db: AppDatabase, user: {
   })
 }
 
+async function getUser(db: AppDatabase, username: string) {
+  const users = await db.select().from(userTable).where(eq(userTable.username, username)).execute()
+  if (users.length === 0) {
+    return
+  }
+
+  return users[0]
+}
+
 export const userRepo = {
   create,
   createRole,
+  getUser,
 }

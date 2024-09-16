@@ -1,6 +1,7 @@
 import * as path from "node:path"
 import { readdirSync } from "node:fs"
 import { resolve } from "node:path"
+import { createSecretKey } from "node:crypto"
 import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import { objectify } from "radash"
 import consola from "consola"
@@ -103,6 +104,7 @@ export async function createRepo(config: NonNullableConfig) {
     data,
     style,
     sprite,
+    secretKey: createSecretKey(config.options.secret, "utf8"),
   }
 }
 

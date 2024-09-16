@@ -12,9 +12,11 @@ import { apiCatalog } from "./routes/catalog"
 import { boomPlugin, repositoryPlugin } from "./plugins"
 import type { FastifyTypeBoxInstance } from "./createServer"
 import { createServer } from "./createServer"
-import { apiData } from "./routes/data"
-import { apiStyle } from "./routes/style"
+import { apiDataPlugin } from "./routes/data"
+import { apiStylePlugin } from "./routes/style"
 import { apiSprite } from "./routes/sprite"
+import { authPlugin } from "./plugins/auth"
+import { apiAdminPlugin } from "./routes/admin"
 
 export async function startServer(config: NonNullableConfig) {
   const repo = await createRepo(config)
@@ -23,7 +25,6 @@ export async function startServer(config: NonNullableConfig) {
   registerPlugin(server, config, repo)
 
   const prefix = config.options?.prefix ?? "/"
-  // await setupCreateInitialUser(server, prefix)
 
   server.get(`${prefix}`, (_req, _res) => {
     return "Hello"
@@ -35,9 +36,10 @@ export async function startServer(config: NonNullableConfig) {
     const doc = server.swagger()
     return res.send(doc)
   })
+  server.register(apiAdminPlugin, { prefix })
   server.register(apiCatalog, { prefix })
-  server.register(apiData, { prefix })
-  server.register(apiStyle, { prefix })
+  server.register(apiDataPlugin, { prefix })
+  server.register(apiStylePlugin, { prefix })
   server.register(apiSprite, { prefix })
 
   try {
@@ -105,4 +107,5 @@ function registerPlugin(server: FastifyTypeBoxInstance, config: NonNullableConfi
       },
     },
   })
+  server.register(authPlugin)
 }

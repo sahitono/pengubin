@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import * as process from "node:process"
 import { extname, resolve } from "node:path"
+import { randomBytes } from "node:crypto"
 import type { StyleSpecification } from "@maplibre/maplibre-gl-style-spec"
 import { v8, validateStyleMin } from "@maplibre/maplibre-gl-style-spec"
 import destr from "destr"
@@ -30,6 +31,17 @@ export async function loadConfig(location: string): Promise<NonNullableConfig> {
   else {
     consola.error(`Unsupported extension: ${extension}`)
     process.exit(1)
+  }
+
+  if (config.options?.secret == null) {
+    consola.info("missing JWT secret, generating random...")
+    config.options = {
+      ...(config.options ?? {}),
+      secret: generateRandomSecret(),
+    }
+
+    const secretAdded = extension === ".toml" ? toml.stringify(config) : JSON.stringify(config, null, 2)
+    writeFileSync(location, secretAdded)
   }
 
   const styles: Config["styles"] = {}
@@ -88,6 +100,7 @@ export async function loadConfig(location: string): Promise<NonNullableConfig> {
         limit: ConfigSchema.properties.options.properties.rateLimit.properties.limit.default,
       },
       appConfigDatabase: ConfigSchema.properties.options.properties.appConfigDatabase.default,
+      secret: generateRandomSecret(),
     } as Config["options"],
   }) as NonNullableConfig
 
@@ -150,4 +163,8 @@ export function initConfig(location: string, format: SupportedExtension = "json"
   const content = format === "toml" ? toml.stringify(InitConfig) : JSON.stringify(InitConfig, null, 2)
 
   writeFileSync(filepath, content)
+}
+
+function generateRandomSecret(): string {
+  return randomBytes(32).toString("base64")
 }
